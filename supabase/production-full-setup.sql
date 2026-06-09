@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS products (
   compare_at_price NUMERIC(10, 2) CHECK (compare_at_price >= 0),
   images           TEXT[] DEFAULT '{}',
   colors           TEXT[] DEFAULT '{}',
+  color_variants   JSONB NOT NULL DEFAULT '[]',
   sizes            TEXT[] DEFAULT '{}',
   category_id      UUID REFERENCES categories(id) ON DELETE SET NULL,
   stock            INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
@@ -76,6 +77,7 @@ CREATE INDEX IF NOT EXISTS idx_order_items_order   ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_product ON order_items(product_id);
 
 ALTER TABLE products ADD COLUMN IF NOT EXISTS colors TEXT[] DEFAULT '{}';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS color_variants JSONB NOT NULL DEFAULT '[]';
 ALTER TABLE products ADD COLUMN IF NOT EXISTS sizes TEXT[] DEFAULT '{}';
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS selected_options JSONB NOT NULL DEFAULT '{}';
 

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getResend } from "@/lib/resend";
 import { formatPrice, formatDate } from "@/lib/utils";
 import { ADMIN_EMAIL } from "@/lib/admin";
+import { getProductColorVariants } from "@/lib/product-options";
 import {
   DELIVERY_LABELS_AR,
   getShippingPrice,
@@ -13,6 +14,8 @@ import {
 
 type SelectedOptions = {
   color?: string | null;
+  colorValue?: string | null;
+  colorImage?: string | null;
   size?: string | null;
 };
 
@@ -42,7 +45,7 @@ export async function POST(req: NextRequest) {
     const productIds = items.map((item: { product_id: string }) => item.product_id);
     const { data: products, error: productsError } = await supabase
       .from("products")
-      .select("id, name, price, colors, sizes")
+      .select("id, name, price, colors, color_variants, sizes")
       .in("id", productIds);
 
     if (productsError) throw productsError;
@@ -51,17 +54,21 @@ export async function POST(req: NextRequest) {
     const orderItems = items.map((item: {
       product_id: string;
       quantity: number;
-      selected_options?: { color?: string | null; size?: string | null } | null;
+      selected_options?: SelectedOptions | null;
     }) => {
       const product = productMap.get(item.product_id);
       if (!product) throw new Error("Product not found");
 
-      const productColors = (product.colors as string[] | null) ?? [];
+      const productColors = getProductColorVariants({
+        colors: (product.colors as string[] | null) ?? [],
+        color_variants: product.color_variants ?? [],
+      });
       const productSizes = (product.sizes as string[] | null) ?? [];
       const color = item.selected_options?.color?.trim() || null;
       const size = item.selected_options?.size?.trim() || null;
+      const selectedColorVariant = productColors.find((variant) => variant.label === color);
 
-      if (color && productColors.length > 0 && !productColors.includes(color)) {
+      if (color && productColors.length > 0 && !selectedColorVariant) {
         throw new Error("Selected color is not available for this product");
       }
 
@@ -75,6 +82,8 @@ export async function POST(req: NextRequest) {
         price_at_purchase: Number(product.price),
         selected_options: {
           color,
+          colorValue: selectedColorVariant?.value ?? item.selected_options?.colorValue ?? null,
+          colorImage: selectedColorVariant?.image_url ?? item.selected_options?.colorImage ?? null,
           size,
         },
       };

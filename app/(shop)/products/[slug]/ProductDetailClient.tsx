@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ShoppingBag, Star, Minus, Plus, Truck, Shield } from "lucide-react";
+import { ShoppingBag, Star, Minus, Plus } from "lucide-react";
 import { Product } from "@/types";
+import { getProductColorVariants, getReadableTextColor } from "@/lib/product-options";
 import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,16 +21,20 @@ interface Props {
 export function ProductDetailClient({ product, relatedProducts }: Props) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const colors = product.colors ?? [];
+  const colors = getProductColorVariants(product);
   const sizes = product.sizes ?? [];
-  const [selectedColor, setSelectedColor] = useState(colors[0] ?? "");
+  const [selectedColor, setSelectedColor] = useState(colors[0]?.label ?? "");
   const [selectedSize, setSelectedSize] = useState(sizes[0] ?? "");
   const images = product.images?.length ? product.images : ["/placeholder.jpg"];
+  const selectedColorVariant = colors.find((color) => color.label === selectedColor);
+  const selectedImageUrl = selectedColorVariant?.image_url || images[selectedImage];
   const discount = product.compare_at_price
     ? Math.round((1 - product.price / product.compare_at_price) * 100)
     : null;
   const orderParams = new URLSearchParams({ quantity: String(quantity) });
   if (selectedColor) orderParams.set("color", selectedColor);
+  if (selectedColorVariant?.value) orderParams.set("colorValue", selectedColorVariant.value);
+  if (selectedColorVariant?.image_url) orderParams.set("colorImage", selectedColorVariant.image_url);
   if (selectedSize) orderParams.set("size", selectedSize);
 
   return (
@@ -56,7 +61,7 @@ export function ProductDetailClient({ product, relatedProducts }: Props) {
         <div className="space-y-4">
           <div className="relative aspect-square rounded-2xl overflow-hidden bg-muted border border-border">
             <Image
-              src={images[selectedImage]}
+              src={selectedImageUrl}
               alt={product.name}
               fill
               className="object-cover"
@@ -134,17 +139,29 @@ export function ProductDetailClient({ product, relatedProducts }: Props) {
                   <div className="flex flex-wrap gap-2">
                     {colors.map((color) => (
                       <button
-                        key={color}
+                        key={color.label}
                         type="button"
-                        onClick={() => setSelectedColor(color)}
+                        onClick={() => setSelectedColor(color.label)}
                         className={cn(
-                          "min-h-10 rounded-xl border px-4 text-sm transition-colors",
-                          selectedColor === color
-                            ? "border-foreground bg-foreground text-background"
+                          "inline-flex min-h-10 items-center gap-2 rounded-xl border px-4 text-sm transition-colors",
+                          selectedColor === color.label
+                            ? "border-foreground shadow-sm"
                             : "border-border bg-background hover:bg-muted"
                         )}
+                        style={
+                          selectedColor === color.label
+                            ? {
+                                backgroundColor: color.value,
+                                color: getReadableTextColor(color.value),
+                              }
+                            : undefined
+                        }
                       >
-                        {color}
+                        <span
+                          className="h-4 w-4 rounded-full border border-black/15"
+                          style={{ backgroundColor: color.value }}
+                        />
+                        {color.label}
                       </button>
                     ))}
                   </div>
@@ -198,7 +215,7 @@ export function ProductDetailClient({ product, relatedProducts }: Props) {
                 </button>
               </div>
               <span className="text-sm text-muted-foreground">
-                {product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}
+                {product.stock > 0 ? "In stock" : "Out of stock"}
               </span>
             </div>
           </div>
@@ -217,18 +234,6 @@ export function ProductDetailClient({ product, relatedProducts }: Props) {
             </Button>
           </div>
 
-          {/* Trust badges */}
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            {[
-              { icon: Truck, text: "Free shipping over $50" },
-              { icon: Shield, text: "2-year warranty" },
-            ].map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-xl p-3">
-                <Icon className="w-4 h-4 flex-shrink-0" />
-                <span>{text}</span>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 

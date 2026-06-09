@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS products (
   compare_at_price NUMERIC(10, 2) CHECK (compare_at_price >= 0),
   images           TEXT[] DEFAULT '{}',
   colors           TEXT[] DEFAULT '{}',
+  color_variants   JSONB NOT NULL DEFAULT '[]',
   sizes            TEXT[] DEFAULT '{}',
   category_id      UUID REFERENCES categories(id) ON DELETE SET NULL,
   stock            INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),

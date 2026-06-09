@@ -2,6 +2,7 @@
 -- Safe to run more than once in the Supabase SQL Editor.
 
 ALTER TABLE products ADD COLUMN IF NOT EXISTS colors TEXT[] DEFAULT '{}';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS color_variants JSONB NOT NULL DEFAULT '[]';
 ALTER TABLE products ADD COLUMN IF NOT EXISTS sizes TEXT[] DEFAULT '{}';
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS selected_options JSONB NOT NULL DEFAULT '{}';
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ShoppingBag, Star } from "lucide-react";
 import { Product } from "@/types";
+import { getProductColorVariants } from "@/lib/product-options";
 import { formatPrice } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, className }: ProductCardProps) {
+  const colorVariants = getProductColorVariants(product);
   const discount = product.compare_at_price
     ? Math.round((1 - product.price / product.compare_at_price) * 100)
     : null;
@@ -90,15 +92,16 @@ export function ProductCard({ product, className }: ProductCardProps) {
             )}
           </div>
 
-          {(product.colors?.length > 0 || product.sizes?.length > 0) && (
+          {(colorVariants.length > 0 || product.sizes?.length > 0) && (
             <div className="flex flex-wrap gap-1.5 mt-3">
-              {product.colors?.slice(0, 3).map((color) => (
-                <span key={color} className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
-                  {color}
+              {colorVariants.slice(0, 4).map((color) => (
+                <span key={color.label} className="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+                  <span className="h-2.5 w-2.5 rounded-full border border-black/10" style={{ backgroundColor: color.value }} />
+                  {color.label}
                 </span>
               ))}
-              {product.colors && product.colors.length > 3 && (
-                <span className="text-[11px] text-muted-foreground">+{product.colors.length - 3}</span>
+              {colorVariants.length > 4 && (
+                <span className="text-[11px] text-muted-foreground">+{colorVariants.length - 4}</span>
               )}
               {product.sizes?.slice(0, 4).map((size) => (
                 <span key={size} className="rounded-md bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">

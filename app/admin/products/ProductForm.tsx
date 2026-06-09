@@ -5,6 +5,13 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Product, Category } from "@/types";
 
+type ColorVariantDraft = {
+  label: string;
+  value: string;
+  image_url: string;
+  imageFileIndex: number | null;
+};
+
 type Props = {
   categories: Pick<Category, "id" | "name">[];
   product?: Product;
@@ -16,6 +23,22 @@ export default function ProductForm({ categories, product }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [colorVariants, setColorVariants] = useState<ColorVariantDraft[]>(() => {
+    const variants = product?.color_variants?.length
+      ? product.color_variants
+      : product?.colors?.map((color) => ({
+          label: color,
+          value: "#111111",
+          image_url: null,
+        })) ?? [];
+
+    return variants.map((variant) => ({
+      label: variant.label,
+      value: variant.value || "#111111",
+      image_url: variant.image_url ?? "",
+      imageFileIndex: null,
+    }));
+  });
 
   const [form, setForm] = useState({
     name: product?.name ?? "",
@@ -24,7 +47,6 @@ export default function ProductForm({ categories, product }: Props) {
     price: product?.price?.toString() ?? "",
     compare_at_price: product?.compare_at_price?.toString() ?? "",
     images: product?.images?.join(", ") ?? "",
-    colors: product?.colors?.join(", ") ?? "",
     sizes: product?.sizes?.join(", ") ?? "",
     category_id: product?.category_id ?? "",
     stock: product?.stock?.toString() ?? "0",
@@ -76,6 +98,39 @@ export default function ProductForm({ categories, product }: Props) {
 
   const removeImageFile = (index: number) => {
     setImageFiles((current) => current.filter((_, i) => i !== index));
+    setColorVariants((current) =>
+      current.map((variant) => {
+        if (variant.imageFileIndex === null) return variant;
+        if (variant.imageFileIndex === index) return { ...variant, imageFileIndex: null };
+        if (variant.imageFileIndex > index) {
+          return { ...variant, imageFileIndex: variant.imageFileIndex - 1 };
+        }
+        return variant;
+      })
+    );
+  };
+
+  const updateColorVariant = (
+    index: number,
+    field: keyof ColorVariantDraft,
+    value: string | number | null
+  ) => {
+    setColorVariants((current) =>
+      current.map((variant, i) =>
+        i === index ? { ...variant, [field]: value } : variant
+      )
+    );
+  };
+
+  const addColorVariant = () => {
+    setColorVariants((current) => [
+      ...current,
+      { label: "", value: "#111111", image_url: "", imageFileIndex: null },
+    ]);
+  };
+
+  const removeColorVariant = (index: number) => {
+    setColorVariants((current) => current.filter((_, i) => i !== index));
   };
 
   const uploadImages = async (slug: string) => {
@@ -125,14 +180,28 @@ export default function ProductForm({ categories, product }: Props) {
       return;
     }
 
+    const manualImages = parseList(form.images);
+    const allImages = [...manualImages, ...uploadedImages];
+    const normalizedColorVariants = colorVariants
+      .map((variant) => ({
+        label: variant.label.trim(),
+        value: variant.value || "#111111",
+        image_url:
+          variant.imageFileIndex !== null
+            ? uploadedImages[variant.imageFileIndex] ?? null
+            : variant.image_url.trim() || null,
+      }))
+      .filter((variant) => variant.label);
+
     const payload = {
       name: form.name.trim(),
       slug,
       description: form.description.trim(),
       price: parseFloat(form.price),
       compare_at_price: form.compare_at_price ? parseFloat(form.compare_at_price) : null,
-      images: [...parseList(form.images), ...uploadedImages],
-      colors: parseList(form.colors),
+      images: allImages,
+      colors: normalizedColorVariants.map((variant) => variant.label),
+      color_variants: normalizedColorVariants,
       sizes: parseList(form.sizes),
       category_id: form.category_id || null,
       stock: parseInt(form.stock),
@@ -158,6 +227,7 @@ export default function ProductForm({ categories, product }: Props) {
     display: "block", fontSize: "13px", fontWeight: 600,
     color: "#888", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em",
   };
+  const manualImageUrls = parseList(form.images);
 
   return (
     <form onSubmit={handleSubmit} style={{ maxWidth: "760px" }}>
@@ -290,33 +360,122 @@ export default function ProductForm({ categories, product }: Props) {
         </div>
 
         {/* Options */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-          <div>
-            <label style={labelStyle}>Colors</label>
-            <input style={inputStyle} value={form.colors} onChange={(e) => set("colors", e.target.value)} placeholder="Black, White, Red" />
-            {parseList(form.colors).length > 0 && (
-              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "10px" }}>
-                {parseList(form.colors).map((color) => (
-                  <span key={color} style={{ border: "1px solid rgba(255,255,255,0.12)", borderRadius: "999px", padding: "5px 10px", fontSize: "12px", color: "#d4d4d8" }}>
-                    {color}
-                  </span>
-                ))}
-              </div>
-            )}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "10px" }}>
+            <label style={{ ...labelStyle, margin: 0 }}>Colors</label>
+            <button
+              type="button"
+              onClick={addColorVariant}
+              style={{ padding: "7px 11px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)", background: "#18181f", color: "#e1e1e8", cursor: "pointer", fontSize: "12px", fontWeight: 700 }}
+            >
+              Add color
+            </button>
           </div>
-          <div>
-            <label style={labelStyle}>Sizes</label>
-            <input style={inputStyle} value={form.sizes} onChange={(e) => set("sizes", e.target.value)} placeholder="S, M, L, XL" />
-            {parseList(form.sizes).length > 0 && (
-              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "10px" }}>
-                {parseList(form.sizes).map((size) => (
-                  <span key={size} style={{ border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px", padding: "5px 10px", fontSize: "12px", color: "#d4d4d8" }}>
-                    {size}
-                  </span>
-                ))}
-              </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {colorVariants.length === 0 && (
+              <p style={{ margin: 0, color: "#555", fontSize: "13px" }}>Add colors only when the product has selectable color variants.</p>
             )}
+            {colorVariants.map((variant, index) => (
+              <div
+                key={index}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "44px 1fr 1.2fr auto",
+                  gap: "10px",
+                  alignItems: "center",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: "10px",
+                  padding: "10px",
+                  background: "#0d0d13",
+                }}
+              >
+                <input
+                  type="color"
+                  value={variant.value}
+                  onChange={(event) => updateColorVariant(index, "value", event.target.value)}
+                  aria-label={`Color value ${index + 1}`}
+                  style={{ width: "44px", height: "38px", border: "none", padding: 0, background: "transparent", cursor: "pointer" }}
+                />
+                <input
+                  style={inputStyle}
+                  value={variant.label}
+                  onChange={(event) => updateColorVariant(index, "label", event.target.value)}
+                  placeholder="Black"
+                />
+                <select
+                  style={{ ...inputStyle, cursor: "pointer" }}
+                  value={
+                    variant.imageFileIndex !== null
+                      ? `file:${variant.imageFileIndex}`
+                      : variant.image_url
+                        ? `url:${variant.image_url}`
+                        : ""
+                  }
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    if (!value) {
+                      updateColorVariant(index, "image_url", "");
+                      updateColorVariant(index, "imageFileIndex", null);
+                      return;
+                    }
+                    if (value.startsWith("file:")) {
+                      updateColorVariant(index, "image_url", "");
+                      updateColorVariant(index, "imageFileIndex", Number(value.replace("file:", "")));
+                      return;
+                    }
+                    updateColorVariant(index, "image_url", value.replace("url:", ""));
+                    updateColorVariant(index, "imageFileIndex", null);
+                  }}
+                >
+                  <option value="">Use main image</option>
+                  {manualImageUrls.map((url, imageIndex) => (
+                    <option key={`${url}-${imageIndex}`} value={`url:${url}`}>
+                      URL image {imageIndex + 1}
+                    </option>
+                  ))}
+                  {filePreviews.map((preview, imageIndex) => (
+                    <option key={preview.url} value={`file:${imageIndex}`}>
+                      Uploaded image {imageIndex + 1} - {preview.file.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => removeColorVariant(index)}
+                  aria-label={`Remove color ${variant.label || index + 1}`}
+                  style={{ width: "34px", height: "34px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)", background: "#18181f", color: "#e1e1e8", cursor: "pointer" }}
+                >
+                  x
+                </button>
+              </div>
+            ))}
           </div>
+
+          {colorVariants.length > 0 && (
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>
+              {colorVariants.filter((variant) => variant.label.trim()).map((variant) => (
+                <span key={`${variant.label}-${variant.value}`} style={{ display: "inline-flex", alignItems: "center", gap: "7px", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "999px", padding: "6px 10px", fontSize: "12px", color: "#d4d4d8" }}>
+                  <span style={{ width: "14px", height: "14px", borderRadius: "999px", background: variant.value, border: "1px solid rgba(255,255,255,0.3)" }} />
+                  {variant.label}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label style={labelStyle}>Sizes</label>
+          <input style={inputStyle} value={form.sizes} onChange={(e) => set("sizes", e.target.value)} placeholder="S, M, L, XL" />
+          {parseList(form.sizes).length > 0 && (
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "10px" }}>
+              {parseList(form.sizes).map((size) => (
+                <span key={size} style={{ border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px", padding: "5px 10px", fontSize: "12px", color: "#d4d4d8" }}>
+                  {size}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Featured */}

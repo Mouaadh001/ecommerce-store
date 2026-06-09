@@ -8,6 +8,7 @@ import { ArrowLeft, CheckCircle2, Lock, Minus, Plus, ShoppingBag } from "lucide-
 import { toast } from "sonner";
 import { Product } from "@/types";
 import { WILAYAS } from "@/lib/algeria";
+import { getProductColorVariants, getReadableTextColor } from "@/lib/product-options";
 import {
   DELIVERY_LABELS_AR,
   getShippingPrice,
@@ -51,13 +52,13 @@ export default function ProductOrderClient({
 }) {
   const searchParams = useSearchParams();
   const initialQuantity = Math.max(1, Number(searchParams.get("quantity")) || 1);
-  const colors = product.colors ?? [];
+  const colors = getProductColorVariants(product);
   const sizes = product.sizes ?? [];
   const queryColor = searchParams.get("color") ?? "";
   const querySize = searchParams.get("size") ?? "";
   const [quantity, setQuantity] = useState(initialQuantity);
   const [selectedColor, setSelectedColor] = useState(
-    colors.includes(queryColor) ? queryColor : colors[0] ?? ""
+    colors.some((color) => color.label === queryColor) ? queryColor : colors[0]?.label ?? ""
   );
   const [selectedSize, setSelectedSize] = useState(
     sizes.includes(querySize) ? querySize : sizes[0] ?? ""
@@ -78,7 +79,8 @@ export default function ProductOrderClient({
     ? getShippingPrice(shippingPrices, form.wilayaCode, form.deliveryType)
     : 0;
   const total = productTotal + shipping;
-  const image = product.images?.[0];
+  const selectedColorVariant = colors.find((color) => color.label === selectedColor);
+  const image = selectedColorVariant?.image_url || product.images?.[0];
 
   const set = (key: keyof FormState, value: string) => {
     setForm((current) => ({
@@ -125,6 +127,8 @@ export default function ProductOrderClient({
               quantity,
               selected_options: {
                 color: selectedColor || null,
+                colorValue: selectedColorVariant?.value || null,
+                colorImage: selectedColorVariant?.image_url || null,
                 size: selectedSize || null,
               },
             },
@@ -284,16 +288,28 @@ export default function ProductOrderClient({
                   <div className="flex flex-wrap gap-2">
                     {colors.map((color) => (
                       <button
-                        key={color}
+                        key={color.label}
                         type="button"
-                        onClick={() => setSelectedColor(color)}
-                        className={`min-h-9 rounded-lg border px-3 text-sm transition-colors ${
-                          selectedColor === color
-                            ? "border-foreground bg-foreground text-background"
+                        onClick={() => setSelectedColor(color.label)}
+                        className={`inline-flex min-h-9 items-center gap-2 rounded-lg border px-3 text-sm transition-colors ${
+                          selectedColor === color.label
+                            ? "border-foreground shadow-sm"
                             : "border-border bg-background hover:bg-muted"
                         }`}
+                        style={
+                          selectedColor === color.label
+                            ? {
+                                backgroundColor: color.value,
+                                color: getReadableTextColor(color.value),
+                              }
+                            : undefined
+                        }
                       >
-                        {color}
+                        <span
+                          className="h-3.5 w-3.5 rounded-full border border-black/15"
+                          style={{ backgroundColor: color.value }}
+                        />
+                        {color.label}
                       </button>
                     ))}
                   </div>

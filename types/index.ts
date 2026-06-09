@@ -24,12 +24,19 @@ export interface Product {
   compare_at_price: number | null;
   images: string[];
   colors: string[];
+  color_variants: ProductColorVariant[];
   sizes: string[];
   category_id: string | null;
   stock: number;
   featured: boolean;
   created_at: string;
   category?: Category;
+}
+
+export interface ProductColorVariant {
+  label: string;
+  value: string;
+  image_url?: string | null;
 }
 
 export interface Profile {
@@ -75,6 +82,8 @@ export interface OrderItem {
   price_at_purchase: number;
   selected_options: {
     color?: string | null;
+    colorValue?: string | null;
+    colorImage?: string | null;
     size?: string | null;
   } | null;
   product?: Product;

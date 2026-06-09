@@ -16,7 +16,12 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
 
 const ALL_STATUSES: OrderStatus[] = ["pending", "processing", "shipped", "delivered", "cancelled"];
 
-type SelectedOptions = { color?: string | null; size?: string | null };
+type SelectedOptions = {
+  color?: string | null;
+  colorValue?: string | null;
+  colorImage?: string | null;
+  size?: string | null;
+};
 type OrderItem = {
   quantity: number;
   price_at_purchase: number;
@@ -107,7 +112,19 @@ export default function AdminOrdersClient({ orders }: { orders: Order[] }) {
                           <span style={{ color: "#e1e1e8" }}>
                             {item.product?.name ?? "Unknown"} × {item.quantity}
                             {options && (
-                              <span style={{ display: "block", marginTop: "2px", color: "#777", fontSize: "12px" }}>
+                              <span style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px", color: "#777", fontSize: "12px" }}>
+                                {item.selected_options?.colorValue && (
+                                  <span
+                                    style={{
+                                      width: "10px",
+                                      height: "10px",
+                                      borderRadius: "999px",
+                                      background: item.selected_options.colorValue,
+                                      border: "1px solid rgba(255,255,255,0.22)",
+                                      flexShrink: 0,
+                                    }}
+                                  />
+                                )}
                                 {options}
                               </span>
                             )}
