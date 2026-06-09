@@ -33,12 +33,6 @@ export default function LoginPage() {
             <p className="text-muted-foreground mt-1">Sign in to your account to continue</p>
           </div>
           <LoginForm />
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="font-medium text-foreground underline underline-offset-4 hover:no-underline">
-              Create one
-            </Link>
-          </p>
         </div>
       </div>
     </div>

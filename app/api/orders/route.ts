@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
       </html>
     `;
 
-    // Send confirmation email
+    // Send confirmation email to customer
     if (process.env.RESEND_API_KEY) {
       await getResend().emails.send({
         from: "Luminary Store <noreply@luminarystore.com>",
@@ -162,6 +162,115 @@ export async function POST(req: NextRequest) {
         subject: `Order Confirmed — #${order.id.slice(0, 8).toUpperCase()}`,
         html: emailHtml,
       });
+
+      // Build admin notification email with ALL order details
+      const adminItemsHtml = items
+        .map((item: { product_id: string; quantity: number; price_at_purchase: number }) => {
+          const product = productMap.get(item.product_id);
+          return `
+            <tr>
+              <td style="padding: 10px 12px; border-bottom: 1px solid #e5e5e5; font-size: 14px;">${product?.name ?? "Unknown Product"}</td>
+              <td style="padding: 10px 12px; border-bottom: 1px solid #e5e5e5; font-size: 14px; text-align: center;">${item.quantity}</td>
+              <td style="padding: 10px 12px; border-bottom: 1px solid #e5e5e5; font-size: 14px; text-align: right;">${formatPrice(item.price_at_purchase)}</td>
+              <td style="padding: 10px 12px; border-bottom: 1px solid #e5e5e5; font-size: 14px; text-align: right; font-weight: 600;">${formatPrice(item.price_at_purchase * item.quantity)}</td>
+            </tr>
+          `;
+        })
+        .join("");
+
+      const adminEmailHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New Order Received</title>
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+          <div style="max-width: 640px; margin: 40px auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e5e5e5; box-shadow: 0 4px 24px rgba(0,0,0,0.06);">
+
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); padding: 32px; text-align: center;">
+              <div style="font-size: 40px; margin-bottom: 8px;">🛍️</div>
+              <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.3px;">New Order Received!</h1>
+              <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 14px;">Order #${order.id.slice(0, 8).toUpperCase()} — ${formatDate(order.created_at)}</p>
+            </div>
+
+            <!-- Body -->
+            <div style="padding: 32px;">
+
+              <!-- Customer Info -->
+              <div style="background: #f9fafb; border-radius: 12px; padding: 20px; margin-bottom: 24px; border-left: 4px solid #16a34a;">
+                <h2 style="margin: 0 0 16px; font-size: 15px; font-weight: 700; color: #111; text-transform: uppercase; letter-spacing: 0.05em;">👤 Customer Details</h2>
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                  <tr>
+                    <td style="padding: 5px 0; color: #6b7280; width: 120px;">Full Name</td>
+                    <td style="padding: 5px 0; color: #111; font-weight: 600;">${customer.fullName}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 5px 0; color: #6b7280;">Email</td>
+                    <td style="padding: 5px 0; color: #111;"><a href="mailto:${customer.email}" style="color: #16a34a; text-decoration: none;">${customer.email}</a></td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 5px 0; color: #6b7280;">Phone</td>
+                    <td style="padding: 5px 0; color: #111; font-weight: 600;">${customer.phone ? `<a href="tel:${customer.phone}" style="color: #16a34a; text-decoration: none;">${customer.phone}</a>` : '<span style="color:#9ca3af;">Not provided</span>'}</td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Items Ordered -->
+              <h2 style="margin: 0 0 12px; font-size: 15px; font-weight: 700; color: #111; text-transform: uppercase; letter-spacing: 0.05em;">🛒 Items Ordered</h2>
+              <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 24px; border: 1px solid #e5e5e5; border-radius: 10px; overflow: hidden;">
+                <thead>
+                  <tr style="background: #f3f4f6;">
+                    <th style="padding: 10px 12px; text-align: left; font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Product</th>
+                    <th style="padding: 10px 12px; text-align: center; font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Qty</th>
+                    <th style="padding: 10px 12px; text-align: right; font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Unit Price</th>
+                    <th style="padding: 10px 12px; text-align: right; font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${adminItemsHtml}
+                </tbody>
+                <tfoot>
+                  <tr style="background: #f9fafb;">
+                    <td colspan="3" style="padding: 14px 12px; font-weight: 700; font-size: 15px; color: #111;">Total</td>
+                    <td style="padding: 14px 12px; text-align: right; font-weight: 700; font-size: 15px; color: #16a34a;">${formatPrice(total)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+
+              <!-- Shipping Address -->
+              <div style="background: #f9fafb; border-radius: 12px; padding: 20px; border-left: 4px solid #6366f1;">
+                <h2 style="margin: 0 0 12px; font-size: 15px; font-weight: 700; color: #111; text-transform: uppercase; letter-spacing: 0.05em;">📦 Shipping Address</h2>
+                <p style="margin: 0; font-size: 14px; color: #374151; line-height: 1.8;">
+                  <strong>${customer.fullName}</strong><br>
+                  ${shippingAddress.street}<br>
+                  ${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.zip}<br>
+                  ${shippingAddress.country}
+                </p>
+              </div>
+
+            </div>
+
+            <!-- Footer -->
+            <div style="background: #f9fafb; padding: 20px 32px; text-align: center; border-top: 1px solid #e5e5e5;">
+              <p style="margin: 0; font-size: 13px; color: #9ca3af;">Luminary Store Admin Notification • ${formatDate(order.created_at)}</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Send admin notification
+      if (process.env.ADMIN_EMAIL) {
+        await getResend().emails.send({
+          from: "Luminary Store <noreply@luminarystore.com>",
+          to: process.env.ADMIN_EMAIL,
+          subject: `🛍️ New Order #${order.id.slice(0, 8).toUpperCase()} — ${customer.fullName} (${formatPrice(total)})`,
+          html: adminEmailHtml,
+        });
+      }
     }
 
     return NextResponse.json({ orderId: order.id }, { status: 201 });

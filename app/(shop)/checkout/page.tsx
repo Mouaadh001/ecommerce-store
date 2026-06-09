@@ -103,13 +103,13 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <h1 className="text-3xl font-bold tracking-tight mb-8">Checkout</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-6 sm:mb-8">Checkout</h1>
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-10">
           {/* Left: Form */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-5 sm:space-y-8">
             {/* Contact */}
             <section className="rounded-2xl border border-border bg-card p-6 space-y-4">
               <h2 className="text-lg font-semibold">Contact Information</h2>
@@ -177,7 +177,7 @@ export default function CheckoutPage() {
 
           {/* Right: Summary */}
           <div className="lg:col-span-1">
-            <div className="sticky top-24 rounded-2xl border border-border bg-card p-6 space-y-5">
+            <div className="lg:sticky lg:top-24 rounded-2xl border border-border bg-card p-4 sm:p-6 space-y-4 sm:space-y-5">
               <h2 className="text-lg font-semibold">Order Summary</h2>
 
               <ul className="space-y-3">

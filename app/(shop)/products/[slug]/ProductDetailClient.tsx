@@ -45,9 +45,9 @@ export function ProductDetailClient({ product, relatedProducts }: Props) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-8">
+      <nav className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-5 sm:mb-8 flex-wrap">
         <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
         <span>/</span>
         <Link href="/products" className="hover:text-foreground transition-colors">Products</Link>
@@ -63,7 +63,7 @@ export function ProductDetailClient({ product, relatedProducts }: Props) {
         <span className="text-foreground truncate max-w-[150px]">{product.name}</span>
       </nav>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-10 lg:gap-12">
         {/* Images */}
         <div className="space-y-4">
           <div className="relative aspect-square rounded-2xl overflow-hidden bg-muted border border-border">
@@ -83,13 +83,13 @@ export function ProductDetailClient({ product, relatedProducts }: Props) {
           </div>
 
           {images.length > 1 && (
-            <div className="flex gap-3 overflow-x-auto pb-1">
+            <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-1">
               {images.map((img, i) => (
                 <button
                   key={i}
                   onClick={() => setSelectedImage(i)}
                   className={cn(
-                    "relative w-20 h-20 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all",
+                    "relative w-14 h-14 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all",
                     selectedImage === i ? "border-foreground" : "border-border hover:border-muted-foreground"
                   )}
                 >
@@ -109,7 +109,7 @@ export function ProductDetailClient({ product, relatedProducts }: Props) {
           )}
 
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{product.name}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{product.name}</h1>
             <div className="flex items-center gap-3 mt-3">
               <div className="flex items-center gap-1">
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -121,7 +121,7 @@ export function ProductDetailClient({ product, relatedProducts }: Props) {
           </div>
 
           <div className="flex items-baseline gap-3">
-            <span className="text-4xl font-bold">{formatPrice(product.price)}</span>
+            <span className="text-3xl sm:text-4xl font-bold">{formatPrice(product.price)}</span>
             {product.compare_at_price && (
               <span className="text-xl text-muted-foreground line-through">
                 {formatPrice(product.compare_at_price)}
@@ -166,10 +166,10 @@ export function ProductDetailClient({ product, relatedProducts }: Props) {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3">
             <Button
               size="lg"
-              className="flex-1"
+              className="flex-1 text-sm sm:text-base"
               onClick={handleAddToCart}
               disabled={product.stock === 0}
             >
@@ -184,6 +184,7 @@ export function ProductDetailClient({ product, relatedProducts }: Props) {
               variant="outline"
               onClick={handleWishlist}
               aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+              className="px-3 sm:px-4"
             >
               <Heart className={cn("w-4 h-4", isWishlisted && "fill-red-500 text-red-500")} />
             </Button>
@@ -206,9 +207,9 @@ export function ProductDetailClient({ product, relatedProducts }: Props) {
 
       {/* Related Products */}
       {relatedProducts.length > 0 && (
-        <section className="mt-20">
-          <h2 className="text-2xl font-bold tracking-tight mb-8">You might also like</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+        <section className="mt-12 sm:mt-20">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight mb-6 sm:mb-8">You might also like</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
             {relatedProducts.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
