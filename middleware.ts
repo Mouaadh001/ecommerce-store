@@ -30,9 +30,26 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
-  const isProtected = PROTECTED_ROUTES.some((route) =>
-    pathname.startsWith(route)
-  );
+
+  // If accessing /admin, user must be logged in AND be the admin
+  if (pathname.startsWith("/admin")) {
+    if (!user) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(url);
+    }
+    if (user.email !== process.env.ADMIN_EMAIL) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+    return supabaseResponse;
+  }
+
+  // Other protected routes just need login
+  const OTHER_PROTECTED = ["/profile", "/checkout"];
+  const isProtected = OTHER_PROTECTED.some((route) => pathname.startsWith(route));
 
   if (isProtected && !user) {
     const url = request.nextUrl.clone();
