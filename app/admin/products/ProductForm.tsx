@@ -23,6 +23,8 @@ export default function ProductForm({ categories, product }: Props) {
     price: product?.price?.toString() ?? "",
     compare_at_price: product?.compare_at_price?.toString() ?? "",
     images: product?.images?.join(", ") ?? "",
+    colors: product?.colors?.join(", ") ?? "",
+    sizes: product?.sizes?.join(", ") ?? "",
     category_id: product?.category_id ?? "",
     stock: product?.stock?.toString() ?? "0",
     featured: product?.featured ?? false,
@@ -32,6 +34,12 @@ export default function ProductForm({ categories, product }: Props) {
 
   const autoSlug = (name: string) =>
     name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+  const parseList = (value: string) =>
+    value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +52,9 @@ export default function ProductForm({ categories, product }: Props) {
       description: form.description.trim(),
       price: parseFloat(form.price),
       compare_at_price: form.compare_at_price ? parseFloat(form.compare_at_price) : null,
-      images: form.images.split(",").map((s) => s.trim()).filter(Boolean),
+      images: parseList(form.images),
+      colors: parseList(form.colors),
+      sizes: parseList(form.sizes),
       category_id: form.category_id || null,
       stock: parseInt(form.stock),
       featured: form.featured,
@@ -128,8 +138,48 @@ export default function ProductForm({ categories, product }: Props) {
         {/* Images */}
         <div>
           <label style={labelStyle}>Image URLs (comma-separated)</label>
-          <input style={inputStyle} value={form.images} onChange={(e) => set("images", e.target.value)} placeholder="https://..., https://..." />
+          <textarea rows={3} style={{ ...inputStyle, resize: "vertical" }} value={form.images} onChange={(e) => set("images", e.target.value)} placeholder="https://..., https://..." />
           <p style={{ margin: "6px 0 0", fontSize: "12px", color: "#555" }}>Paste Unsplash or any public image URLs, separated by commas</p>
+          {parseList(form.images).length > 0 && (
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "12px" }}>
+              {parseList(form.images).slice(0, 6).map((image, index) => (
+                <div key={`${image}-${index}`} style={{ width: "72px", height: "72px", borderRadius: "10px", overflow: "hidden", background: "#0a0a0f", border: "1px solid rgba(255,255,255,0.08)" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={image} alt={`Product preview ${index + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Options */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          <div>
+            <label style={labelStyle}>Colors</label>
+            <input style={inputStyle} value={form.colors} onChange={(e) => set("colors", e.target.value)} placeholder="Black, White, Red" />
+            {parseList(form.colors).length > 0 && (
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "10px" }}>
+                {parseList(form.colors).map((color) => (
+                  <span key={color} style={{ border: "1px solid rgba(255,255,255,0.12)", borderRadius: "999px", padding: "5px 10px", fontSize: "12px", color: "#d4d4d8" }}>
+                    {color}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <label style={labelStyle}>Sizes</label>
+            <input style={inputStyle} value={form.sizes} onChange={(e) => set("sizes", e.target.value)} placeholder="S, M, L, XL" />
+            {parseList(form.sizes).length > 0 && (
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "10px" }}>
+                {parseList(form.sizes).map((size) => (
+                  <span key={size} style={{ border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px", padding: "5px 10px", fontSize: "12px", color: "#d4d4d8" }}>
+                    {size}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Featured */}

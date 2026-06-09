@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS products (
   price            NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
   compare_at_price NUMERIC(10, 2) CHECK (compare_at_price >= 0),
   images           TEXT[] DEFAULT '{}',
+  colors           TEXT[] DEFAULT '{}',
+  sizes            TEXT[] DEFAULT '{}',
   category_id      UUID REFERENCES categories(id) ON DELETE SET NULL,
   stock            INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
   featured         BOOLEAN DEFAULT FALSE,
@@ -53,7 +55,8 @@ CREATE TABLE IF NOT EXISTS order_items (
   order_id           UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   product_id         UUID REFERENCES products(id) ON DELETE SET NULL,
   quantity           INTEGER NOT NULL DEFAULT 1 CHECK (quantity > 0),
-  price_at_purchase  NUMERIC(10, 2) NOT NULL CHECK (price_at_purchase >= 0)
+  price_at_purchase  NUMERIC(10, 2) NOT NULL CHECK (price_at_purchase >= 0),
+  selected_options   JSONB NOT NULL DEFAULT '{}'
 );
 
 CREATE TABLE IF NOT EXISTS shipping_prices (
@@ -71,6 +74,10 @@ CREATE INDEX IF NOT EXISTS idx_products_featured   ON products(featured) WHERE f
 CREATE INDEX IF NOT EXISTS idx_orders_user         ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_order   ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_product ON order_items(product_id);
+
+ALTER TABLE products ADD COLUMN IF NOT EXISTS colors TEXT[] DEFAULT '{}';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS sizes TEXT[] DEFAULT '{}';
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS selected_options JSONB NOT NULL DEFAULT '{}';
 
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$

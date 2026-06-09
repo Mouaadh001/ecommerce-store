@@ -23,6 +23,8 @@ export interface Product {
   price: number;
   compare_at_price: number | null;
   images: string[];
+  colors: string[];
+  sizes: string[];
   category_id: string | null;
   stock: number;
   featured: boolean;
@@ -71,6 +73,10 @@ export interface OrderItem {
   product_id: string;
   quantity: number;
   price_at_purchase: number;
+  selected_options: {
+    color?: string | null;
+    size?: string | null;
+  } | null;
   product?: Product;
 }
 

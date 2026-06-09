@@ -51,7 +51,17 @@ export default function ProductOrderClient({
 }) {
   const searchParams = useSearchParams();
   const initialQuantity = Math.max(1, Number(searchParams.get("quantity")) || 1);
+  const colors = product.colors ?? [];
+  const sizes = product.sizes ?? [];
+  const queryColor = searchParams.get("color") ?? "";
+  const querySize = searchParams.get("size") ?? "";
   const [quantity, setQuantity] = useState(initialQuantity);
+  const [selectedColor, setSelectedColor] = useState(
+    colors.includes(queryColor) ? queryColor : colors[0] ?? ""
+  );
+  const [selectedSize, setSelectedSize] = useState(
+    sizes.includes(querySize) ? querySize : sizes[0] ?? ""
+  );
   const [form, setForm] = useState<FormState>(initialForm);
   const [loading, setLoading] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -113,6 +123,10 @@ export default function ProductOrderClient({
             {
               product_id: product.id,
               quantity,
+              selected_options: {
+                color: selectedColor || null,
+                size: selectedSize || null,
+              },
             },
           ],
         }),
@@ -262,9 +276,59 @@ export default function ProductOrderClient({
             </div>
           </div>
 
+          {(colors.length > 0 || sizes.length > 0) && (
+            <div className="space-y-4">
+              {colors.length > 0 && (
+                <div>
+                  <Label className="mb-2 block">اللون</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {colors.map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setSelectedColor(color)}
+                        className={`min-h-9 rounded-lg border px-3 text-sm transition-colors ${
+                          selectedColor === color
+                            ? "border-foreground bg-foreground text-background"
+                            : "border-border bg-background hover:bg-muted"
+                        }`}
+                      >
+                        {color}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {sizes.length > 0 && (
+                <div>
+                  <Label className="mb-2 block">المقاس</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {sizes.map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setSelectedSize(size)}
+                        className={`min-h-9 min-w-10 rounded-lg border px-3 text-sm font-medium transition-colors ${
+                          selectedSize === size
+                            ? "border-foreground bg-foreground text-background"
+                            : "border-border bg-background hover:bg-muted"
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <Separator />
 
           <div className="space-y-2 text-sm">
+            {selectedColor && <SummaryRow label="اللون" value={selectedColor} />}
+            {selectedSize && <SummaryRow label="المقاس" value={selectedSize} />}
             <SummaryRow label="سعر المنتجات" value={formatPrice(productTotal, "DZD")} />
             <SummaryRow
               label={`التوصيل ${form.wilayaCode ? `(${DELIVERY_LABELS_AR[form.deliveryType]})` : ""}`}

@@ -20,10 +20,17 @@ interface Props {
 export function ProductDetailClient({ product, relatedProducts }: Props) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const colors = product.colors ?? [];
+  const sizes = product.sizes ?? [];
+  const [selectedColor, setSelectedColor] = useState(colors[0] ?? "");
+  const [selectedSize, setSelectedSize] = useState(sizes[0] ?? "");
   const images = product.images?.length ? product.images : ["/placeholder.jpg"];
   const discount = product.compare_at_price
     ? Math.round((1 - product.price / product.compare_at_price) * 100)
     : null;
+  const orderParams = new URLSearchParams({ quantity: String(quantity) });
+  if (selectedColor) orderParams.set("color", selectedColor);
+  if (selectedSize) orderParams.set("size", selectedSize);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
@@ -119,6 +126,56 @@ export function ProductDetailClient({ product, relatedProducts }: Props) {
 
           <p className="text-muted-foreground leading-relaxed">{product.description}</p>
 
+          {(colors.length > 0 || sizes.length > 0) && (
+            <div className="space-y-5">
+              {colors.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Color</label>
+                  <div className="flex flex-wrap gap-2">
+                    {colors.map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setSelectedColor(color)}
+                        className={cn(
+                          "min-h-10 rounded-xl border px-4 text-sm transition-colors",
+                          selectedColor === color
+                            ? "border-foreground bg-foreground text-background"
+                            : "border-border bg-background hover:bg-muted"
+                        )}
+                      >
+                        {color}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {sizes.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Size</label>
+                  <div className="flex flex-wrap gap-2">
+                    {sizes.map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setSelectedSize(size)}
+                        className={cn(
+                          "min-h-10 min-w-12 rounded-xl border px-4 text-sm font-medium transition-colors",
+                          selectedSize === size
+                            ? "border-foreground bg-foreground text-background"
+                            : "border-border bg-background hover:bg-muted"
+                        )}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Quantity */}
           <div>
             <label className="text-sm font-medium mb-2 block">Quantity</label>
@@ -154,7 +211,7 @@ export function ProductDetailClient({ product, relatedProducts }: Props) {
               disabled={product.stock === 0}
               asChild
             >
-              <Link href={`/products/${product.slug}/order?quantity=${quantity}`}>
+              <Link href={`/products/${product.slug}/order?${orderParams.toString()}`}>
                 <ShoppingBag className="w-4 h-4" /> Order Now
               </Link>
             </Button>

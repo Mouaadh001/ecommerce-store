@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS products (
   price            NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
   compare_at_price NUMERIC(10, 2) CHECK (compare_at_price >= 0),
   images           TEXT[] DEFAULT '{}',
+  colors           TEXT[] DEFAULT '{}',
+  sizes            TEXT[] DEFAULT '{}',
   category_id      UUID REFERENCES categories(id) ON DELETE SET NULL,
   stock            INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
   featured         BOOLEAN DEFAULT FALSE,
@@ -71,7 +73,8 @@ CREATE TABLE IF NOT EXISTS order_items (
   order_id           UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   product_id         UUID REFERENCES products(id) ON DELETE SET NULL,
   quantity           INTEGER NOT NULL DEFAULT 1 CHECK (quantity > 0),
-  price_at_purchase  NUMERIC(10, 2) NOT NULL CHECK (price_at_purchase >= 0)
+  price_at_purchase  NUMERIC(10, 2) NOT NULL CHECK (price_at_purchase >= 0),
+  selected_options   JSONB NOT NULL DEFAULT '{}'
 );
 
 -- ============================================================

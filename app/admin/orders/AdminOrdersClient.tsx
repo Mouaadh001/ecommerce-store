@@ -16,7 +16,13 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
 
 const ALL_STATUSES: OrderStatus[] = ["pending", "processing", "shipped", "delivered", "cancelled"];
 
-type OrderItem = { quantity: number; price_at_purchase: number; product: { name: string } | null };
+type SelectedOptions = { color?: string | null; size?: string | null };
+type OrderItem = {
+  quantity: number;
+  price_at_purchase: number;
+  selected_options: SelectedOptions | null;
+  product: { name: string } | null;
+};
 type Order = {
   id: string; status: string; total: number; customer_name: string | null;
   customer_email: string | null; shipping_address: Record<string, string | number | null>;
@@ -93,12 +99,23 @@ export default function AdminOrdersClient({ orders }: { orders: Order[] }) {
                 <div>
                   <p style={{ margin: "0 0 12px", fontSize: "12px", color: "#555", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>Items</p>
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    {order.order_items?.map((item, i) => (
-                      <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
-                        <span style={{ color: "#e1e1e8" }}>{item.product?.name ?? "Unknown"} × {item.quantity}</span>
-                        <span style={{ color: "#10b981" }}>{formatPrice(item.price_at_purchase * item.quantity, "DZD")}</span>
-                      </div>
-                    ))}
+                    {order.order_items?.map((item, i) => {
+                      const options = formatSelectedOptions(item.selected_options);
+
+                      return (
+                        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: "12px", fontSize: "13px" }}>
+                          <span style={{ color: "#e1e1e8" }}>
+                            {item.product?.name ?? "Unknown"} × {item.quantity}
+                            {options && (
+                              <span style={{ display: "block", marginTop: "2px", color: "#777", fontSize: "12px" }}>
+                                {options}
+                              </span>
+                            )}
+                          </span>
+                          <span style={{ color: "#10b981", whiteSpace: "nowrap" }}>{formatPrice(item.price_at_purchase * item.quantity, "DZD")}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
                 {/* Shipping */}
@@ -126,4 +143,13 @@ export default function AdminOrdersClient({ orders }: { orders: Order[] }) {
       })}
     </div>
   );
+}
+
+function formatSelectedOptions(options?: SelectedOptions | null) {
+  const parts = [
+    options?.color ? `Color: ${options.color}` : null,
+    options?.size ? `Size: ${options.size}` : null,
+  ].filter(Boolean);
+
+  return parts.join(" | ");
 }

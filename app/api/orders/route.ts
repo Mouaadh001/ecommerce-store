@@ -11,6 +11,20 @@ import {
   type ShippingPrice,
 } from "@/lib/shipping";
 
+type SelectedOptions = {
+  color?: string | null;
+  size?: string | null;
+};
+
+function formatSelectedOptions(options?: SelectedOptions | null) {
+  const parts = [
+    options?.color ? `Color: ${options.color}` : null,
+    options?.size ? `Size: ${options.size}` : null,
+  ].filter(Boolean);
+
+  return parts.join(" | ");
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -28,20 +42,41 @@ export async function POST(req: NextRequest) {
     const productIds = items.map((item: { product_id: string }) => item.product_id);
     const { data: products, error: productsError } = await supabase
       .from("products")
-      .select("id, name, price")
+      .select("id, name, price, colors, sizes")
       .in("id", productIds);
 
     if (productsError) throw productsError;
 
     const productMap = new Map(products?.map((p) => [p.id, p]) ?? []);
-    const orderItems = items.map((item: { product_id: string; quantity: number }) => {
+    const orderItems = items.map((item: {
+      product_id: string;
+      quantity: number;
+      selected_options?: { color?: string | null; size?: string | null } | null;
+    }) => {
       const product = productMap.get(item.product_id);
       if (!product) throw new Error("Product not found");
+
+      const productColors = (product.colors as string[] | null) ?? [];
+      const productSizes = (product.sizes as string[] | null) ?? [];
+      const color = item.selected_options?.color?.trim() || null;
+      const size = item.selected_options?.size?.trim() || null;
+
+      if (color && productColors.length > 0 && !productColors.includes(color)) {
+        throw new Error("Selected color is not available for this product");
+      }
+
+      if (size && productSizes.length > 0 && !productSizes.includes(size)) {
+        throw new Error("Selected size is not available for this product");
+      }
 
       return {
         product_id: item.product_id,
         quantity: Math.max(1, Number(item.quantity) || 1),
         price_at_purchase: Number(product.price),
+        selected_options: {
+          color,
+          size,
+        },
       };
     });
 
@@ -94,6 +129,7 @@ export async function POST(req: NextRequest) {
       product_id: item.product_id,
       quantity: item.quantity,
       price_at_purchase: item.price_at_purchase,
+      selected_options: item.selected_options,
     }));
 
     const { error: itemsError } = await supabase
@@ -106,10 +142,12 @@ export async function POST(req: NextRequest) {
     const itemsHtml = orderItems
       .map((item) => {
         const product = productMap.get(item.product_id);
+        const optionText = formatSelectedOptions(item.selected_options);
         return `
           <tr>
             <td style="padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
               <strong>${product?.name ?? "Product"}</strong>
+              ${optionText ? `<br><span style="font-size: 12px; color: #777;">${optionText}</span>` : ""}
             </td>
             <td style="padding: 12px 0; border-bottom: 1px solid #f0f0f0; text-align: center;">
               ${item.quantity}
@@ -219,9 +257,13 @@ export async function POST(req: NextRequest) {
       const adminItemsHtml = orderItems
         .map((item) => {
           const product = productMap.get(item.product_id);
+          const optionText = formatSelectedOptions(item.selected_options);
           return `
             <tr>
-              <td style="padding: 10px 12px; border-bottom: 1px solid #e5e5e5; font-size: 14px;">${product?.name ?? "Unknown Product"}</td>
+              <td style="padding: 10px 12px; border-bottom: 1px solid #e5e5e5; font-size: 14px;">
+                ${product?.name ?? "Unknown Product"}
+                ${optionText ? `<br><span style="font-size: 12px; color: #6b7280;">${optionText}</span>` : ""}
+              </td>
               <td style="padding: 10px 12px; border-bottom: 1px solid #e5e5e5; font-size: 14px; text-align: center;">${item.quantity}</td>
               <td style="padding: 10px 12px; border-bottom: 1px solid #e5e5e5; font-size: 14px; text-align: right;">${formatPrice(item.price_at_purchase)}</td>
               <td style="padding: 10px 12px; border-bottom: 1px solid #e5e5e5; font-size: 14px; text-align: right; font-weight: 600;">${formatPrice(item.price_at_purchase * item.quantity)}</td>

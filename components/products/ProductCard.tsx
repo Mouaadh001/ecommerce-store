@@ -89,6 +89,24 @@ export function ProductCard({ product, className }: ProductCardProps) {
               </span>
             )}
           </div>
+
+          {(product.colors?.length > 0 || product.sizes?.length > 0) && (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {product.colors?.slice(0, 3).map((color) => (
+                <span key={color} className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+                  {color}
+                </span>
+              ))}
+              {product.colors && product.colors.length > 3 && (
+                <span className="text-[11px] text-muted-foreground">+{product.colors.length - 3}</span>
+              )}
+              {product.sizes?.slice(0, 4).map((size) => (
+                <span key={size} className="rounded-md bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                  {size}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </Link>
