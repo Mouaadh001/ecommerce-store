@@ -8,6 +8,7 @@ import {
   ShoppingBag,
   PlusCircle,
   LogOut,
+  Truck,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -17,6 +18,7 @@ const navItems = [
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/products/new", label: "Add Product", icon: PlusCircle },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/admin/shipping", label: "Shipping", icon: Truck },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -39,7 +41,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <nav className="admin-nav">
           {navItems.map(({ href, label, icon: Icon, exact }) => {
-            const active = exact ? pathname === href : pathname.startsWith(href) && !(exact === undefined && href === "/admin" && pathname === "/admin");
             const isActive = exact ? pathname === href : pathname.startsWith(href);
             return (
               <Link

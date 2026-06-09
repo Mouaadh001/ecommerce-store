@@ -2,11 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, ShoppingBag, Star } from "lucide-react";
-import { toast } from "sonner";
+import { ShoppingBag, Star } from "lucide-react";
 import { Product } from "@/types";
-import { useCartStore } from "@/store/cartStore";
-import { useWishlistStore } from "@/store/wishlistStore";
 import { formatPrice } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -17,28 +14,9 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, className }: ProductCardProps) {
-  const addItem = useCartStore((s) => s.addItem);
-  const { toggleItem, isInWishlist } = useWishlistStore();
-  const isWishlisted = isInWishlist(product.id);
   const discount = product.compare_at_price
     ? Math.round((1 - product.price / product.compare_at_price) * 100)
     : null;
-
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    addItem(product);
-    toast.success("Added to cart", {
-      description: product.name,
-    });
-  };
-
-  const handleWishlist = (e: React.MouseEvent) => {
-    e.preventDefault();
-    toggleItem(product);
-    toast(isWishlisted ? "Removed from wishlist" : "Added to wishlist", {
-      description: product.name,
-    });
-  };
 
   return (
     <Link href={`/products/${product.slug}`} className={cn("group block", className)}>
@@ -72,35 +50,17 @@ export function ProductCard({ product, className }: ProductCardProps) {
             )}
           </div>
 
-          {/* Wishlist */}
-          <button
-            onClick={handleWishlist}
-            aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-            className={cn(
-              "absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200",
-              "opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100",
-              isWishlisted
-                ? "bg-red-500 text-white opacity-100 scale-100"
-                : "bg-background/90 backdrop-blur-sm text-foreground hover:bg-background"
-            )}
-          >
-            <Heart className={cn("w-4 h-4", isWishlisted && "fill-current")} />
-          </button>
-
-          {/* Add to cart overlay */}
+          {/* Order overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-200">
-            <button
-              onClick={handleAddToCart}
-              disabled={product.stock === 0}
+            <div
               className={cn(
                 "w-full py-2.5 px-4 bg-foreground text-background text-sm font-medium rounded-xl",
-                "flex items-center justify-center gap-2 transition-colors",
-                "hover:bg-foreground/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                "flex items-center justify-center gap-2"
               )}
             >
               <ShoppingBag className="w-4 h-4" />
-              {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
-            </button>
+              {product.stock === 0 ? "Out of Stock" : "View Product"}
+            </div>
           </div>
         </div>
 

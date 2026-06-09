@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { LoginForm } from "./LoginForm";
@@ -32,7 +32,9 @@ export default function LoginPage() {
             <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
             <p className="text-muted-foreground mt-1">Sign in to your account to continue</p>
           </div>
-          <LoginForm />
+          <Suspense fallback={null}>
+            <LoginForm />
+          </Suspense>
         </div>
       </div>
     </div>

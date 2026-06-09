@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { isAdminEmail } from "@/lib/admin";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email"),
@@ -20,6 +21,7 @@ type LoginData = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
@@ -40,7 +42,8 @@ export function LoginForm() {
     }
 
     toast.success("Welcome back!");
-    router.push("/profile");
+    const redirectTo = searchParams.get("redirect");
+    router.push(isAdminEmail(data.email) ? "/admin" : redirectTo ?? "/products");
     router.refresh();
   };
 

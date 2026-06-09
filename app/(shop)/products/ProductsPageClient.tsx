@@ -56,7 +56,10 @@ export default function ProductsPageClient() {
   }, []);
 
   useEffect(() => {
-    fetchProducts();
+    const frame = requestAnimationFrame(() => {
+      void fetchProducts();
+    });
+    return () => cancelAnimationFrame(frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, selectedCategory, sort]);
 

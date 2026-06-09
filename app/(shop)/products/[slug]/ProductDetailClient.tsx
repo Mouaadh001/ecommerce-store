@@ -3,11 +3,8 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Heart, ShoppingBag, Star, Minus, Plus, Check, Truck, Shield } from "lucide-react";
-import { toast } from "sonner";
+import { ShoppingBag, Star, Minus, Plus, Truck, Shield } from "lucide-react";
 import { Product } from "@/types";
-import { useCartStore } from "@/store/cartStore";
-import { useWishlistStore } from "@/store/wishlistStore";
 import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,26 +20,10 @@ interface Props {
 export function ProductDetailClient({ product, relatedProducts }: Props) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [addedToCart, setAddedToCart] = useState(false);
-  const addItem = useCartStore((s) => s.addItem);
-  const { toggleItem, isInWishlist } = useWishlistStore();
-  const isWishlisted = isInWishlist(product.id);
   const images = product.images?.length ? product.images : ["/placeholder.jpg"];
   const discount = product.compare_at_price
     ? Math.round((1 - product.price / product.compare_at_price) * 100)
     : null;
-
-  const handleAddToCart = () => {
-    addItem(product, quantity);
-    setAddedToCart(true);
-    toast.success(`${quantity}× ${product.name} added to cart`);
-    setTimeout(() => setAddedToCart(false), 2000);
-  };
-
-  const handleWishlist = () => {
-    toggleItem(product);
-    toast(isWishlisted ? "Removed from wishlist" : "Saved to wishlist");
-  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
@@ -170,23 +151,12 @@ export function ProductDetailClient({ product, relatedProducts }: Props) {
             <Button
               size="lg"
               className="flex-1 text-sm sm:text-base"
-              onClick={handleAddToCart}
               disabled={product.stock === 0}
+              asChild
             >
-              {addedToCart ? (
-                <><Check className="w-4 h-4" /> Added!</>
-              ) : (
-                <><ShoppingBag className="w-4 h-4" /> Add to Cart</>
-              )}
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={handleWishlist}
-              aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-              className="px-3 sm:px-4"
-            >
-              <Heart className={cn("w-4 h-4", isWishlisted && "fill-red-500 text-red-500")} />
+              <Link href={`/products/${product.slug}/order?quantity=${quantity}`}>
+                <ShoppingBag className="w-4 h-4" /> Order Now
+              </Link>
             </Button>
           </div>
 

@@ -2,16 +2,75 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getResend } from "@/lib/resend";
 import { formatPrice, formatDate } from "@/lib/utils";
+import { ADMIN_EMAIL } from "@/lib/admin";
+import {
+  DELIVERY_LABELS_AR,
+  getShippingPrice,
+  mergeShippingPrices,
+  type DeliveryType,
+  type ShippingPrice,
+} from "@/lib/shipping";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { customer, shippingAddress, items, total } = body;
+    const { customer, shippingAddress, items } = body;
 
     const supabase = await createClient();
 
     // Get authenticated user (optional — guests allowed)
     const { data: { user } } = await supabase.auth.getUser();
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return NextResponse.json({ error: "No order items provided" }, { status: 400 });
+    }
+
+    const productIds = items.map((item: { product_id: string }) => item.product_id);
+    const { data: products, error: productsError } = await supabase
+      .from("products")
+      .select("id, name, price")
+      .in("id", productIds);
+
+    if (productsError) throw productsError;
+
+    const productMap = new Map(products?.map((p) => [p.id, p]) ?? []);
+    const orderItems = items.map((item: { product_id: string; quantity: number }) => {
+      const product = productMap.get(item.product_id);
+      if (!product) throw new Error("Product not found");
+
+      return {
+        product_id: item.product_id,
+        quantity: Math.max(1, Number(item.quantity) || 1),
+        price_at_purchase: Number(product.price),
+      };
+    });
+
+    const subtotal = orderItems.reduce(
+      (sum, item) => sum + item.price_at_purchase * item.quantity,
+      0
+    );
+    const deliveryType: DeliveryType =
+      shippingAddress?.deliveryType === "office" ? "office" : "home";
+
+    const { data: shippingRows } = await supabase
+      .from("shipping_prices")
+      .select("*");
+    const shippingPrices = mergeShippingPrices(
+      shippingRows as Partial<ShippingPrice>[] | null
+    );
+    const shippingPrice = shippingAddress?.wilayaCode
+      ? getShippingPrice(shippingPrices, shippingAddress.wilayaCode, deliveryType)
+      : 0;
+    const total = subtotal + shippingPrice;
+    const enrichedShippingAddress = {
+      ...shippingAddress,
+      customerPhone: customer.phone ?? null,
+      deliveryType,
+      deliveryLabelAr: DELIVERY_LABELS_AR[deliveryType],
+      productSubtotal: subtotal,
+      shippingPrice,
+      total,
+    };
 
     // Create order
     const { data: order, error: orderError } = await supabase
@@ -20,8 +79,8 @@ export async function POST(req: NextRequest) {
         user_id: user?.id ?? null,
         status: "pending",
         total,
-        shipping_address: shippingAddress,
-        customer_email: customer.email,
+        shipping_address: enrichedShippingAddress,
+        customer_email: customer.email ?? null,
         customer_name: customer.fullName,
       })
       .select()
@@ -30,7 +89,7 @@ export async function POST(req: NextRequest) {
     if (orderError) throw new Error(orderError.message);
 
     // Create order items
-    const orderItems = items.map((item: { product_id: string; quantity: number; price_at_purchase: number }) => ({
+    const orderItemsWithOrder = orderItems.map((item) => ({
       order_id: order.id,
       product_id: item.product_id,
       quantity: item.quantity,
@@ -39,22 +98,13 @@ export async function POST(req: NextRequest) {
 
     const { error: itemsError } = await supabase
       .from("order_items")
-      .insert(orderItems);
+      .insert(orderItemsWithOrder);
 
     if (itemsError) throw new Error(itemsError.message);
 
-    // Fetch product details for email
-    const productIds = items.map((i: { product_id: string }) => i.product_id);
-    const { data: products } = await supabase
-      .from("products")
-      .select("id, name, price")
-      .in("id", productIds);
-
-    const productMap = new Map(products?.map((p) => [p.id, p]) ?? []);
-
     // Build email HTML
-    const itemsHtml = items
-      .map((item: { product_id: string; quantity: number; price_at_purchase: number }) => {
+    const itemsHtml = orderItems
+      .map((item) => {
         const product = productMap.get(item.product_id);
         return `
           <tr>
@@ -135,9 +185,9 @@ export async function POST(req: NextRequest) {
               <h2 style="font-size: 16px; margin: 0 0 12px; color: #0a0a0a;">Shipping To</h2>
               <p style="margin: 0; font-size: 14px; color: #555; line-height: 1.6;">
                 ${customer.fullName}<br>
-                ${shippingAddress.street}<br>
-                ${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.zip}<br>
-                ${shippingAddress.country}
+                ${enrichedShippingAddress.address ?? enrichedShippingAddress.street ?? ""}<br>
+                ${enrichedShippingAddress.communeNameAr ?? enrichedShippingAddress.city ?? ""}, ${enrichedShippingAddress.wilayaNameAr ?? enrichedShippingAddress.state ?? ""}<br>
+                ${enrichedShippingAddress.deliveryLabelAr ?? ""} - ${formatPrice(enrichedShippingAddress.shippingPrice ?? 0, "DZD")}
               </p>
             </div>
           </div>
@@ -156,16 +206,18 @@ export async function POST(req: NextRequest) {
 
     // Send confirmation email to customer
     if (process.env.RESEND_API_KEY) {
-      await getResend().emails.send({
-        from: "Luminary Store <noreply@luminarystore.com>",
-        to: customer.email,
-        subject: `Order Confirmed — #${order.id.slice(0, 8).toUpperCase()}`,
-        html: emailHtml,
-      });
+      if (customer.email) {
+        await getResend().emails.send({
+          from: "Luminary Store <noreply@luminarystore.com>",
+          to: customer.email,
+          subject: `Order Confirmed — #${order.id.slice(0, 8).toUpperCase()}`,
+          html: emailHtml,
+        });
+      }
 
       // Build admin notification email with ALL order details
-      const adminItemsHtml = items
-        .map((item: { product_id: string; quantity: number; price_at_purchase: number }) => {
+      const adminItemsHtml = orderItems
+        .map((item) => {
           const product = productMap.get(item.product_id);
           return `
             <tr>
@@ -245,9 +297,9 @@ export async function POST(req: NextRequest) {
                 <h2 style="margin: 0 0 12px; font-size: 15px; font-weight: 700; color: #111; text-transform: uppercase; letter-spacing: 0.05em;">📦 Shipping Address</h2>
                 <p style="margin: 0; font-size: 14px; color: #374151; line-height: 1.8;">
                   <strong>${customer.fullName}</strong><br>
-                  ${shippingAddress.street}<br>
-                  ${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.zip}<br>
-                  ${shippingAddress.country}
+                  ${enrichedShippingAddress.address ?? enrichedShippingAddress.street ?? ""}<br>
+                  ${enrichedShippingAddress.communeNameAr ?? enrichedShippingAddress.city ?? ""}, ${enrichedShippingAddress.wilayaNameAr ?? enrichedShippingAddress.state ?? ""}<br>
+                  ${enrichedShippingAddress.deliveryLabelAr ?? ""} - ${formatPrice(enrichedShippingAddress.shippingPrice ?? 0, "DZD")}
                 </p>
               </div>
 
@@ -263,10 +315,10 @@ export async function POST(req: NextRequest) {
       `;
 
       // Send admin notification
-      if (process.env.ADMIN_EMAIL) {
+      if (ADMIN_EMAIL) {
         await getResend().emails.send({
           from: "Luminary Store <noreply@luminarystore.com>",
-          to: process.env.ADMIN_EMAIL,
+          to: ADMIN_EMAIL,
           subject: `🛍️ New Order #${order.id.slice(0, 8).toUpperCase()} — ${customer.fullName} (${formatPrice(total)})`,
           html: adminEmailHtml,
         });

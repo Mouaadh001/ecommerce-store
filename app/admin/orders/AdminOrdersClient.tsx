@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import type { OrderStatus } from "@/types";
+import { formatPrice } from "@/lib/utils";
 
 const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   pending:    { bg: "rgba(245,158,11,0.15)",  color: "#fbbf24" },
@@ -18,7 +19,7 @@ const ALL_STATUSES: OrderStatus[] = ["pending", "processing", "shipped", "delive
 type OrderItem = { quantity: number; price_at_purchase: number; product: { name: string } | null };
 type Order = {
   id: string; status: string; total: number; customer_name: string | null;
-  customer_email: string | null; shipping_address: Record<string, string>;
+  customer_email: string | null; shipping_address: Record<string, string | number | null>;
   created_at: string; order_items: OrderItem[];
 };
 
@@ -63,7 +64,7 @@ export default function AdminOrdersClient({ orders }: { orders: Order[] }) {
                 <p style={{ margin: "2px 0 0", color: "#555", fontSize: "12px" }}>{new Date(order.created_at).toLocaleString()}</p>
               </div>
               <div style={{ color: "#10b981", fontWeight: 700, fontSize: "15px" }}>
-                ${Number(order.total).toFixed(2)}
+                {formatPrice(Number(order.total), "DZD")}
               </div>
               <div onClick={(e) => e.stopPropagation()}>
                 <select
@@ -95,7 +96,7 @@ export default function AdminOrdersClient({ orders }: { orders: Order[] }) {
                     {order.order_items?.map((item, i) => (
                       <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
                         <span style={{ color: "#e1e1e8" }}>{item.product?.name ?? "Unknown"} × {item.quantity}</span>
-                        <span style={{ color: "#10b981" }}>${(item.price_at_purchase * item.quantity).toFixed(2)}</span>
+                        <span style={{ color: "#10b981" }}>{formatPrice(item.price_at_purchase * item.quantity, "DZD")}</span>
                       </div>
                     ))}
                   </div>
@@ -104,9 +105,18 @@ export default function AdminOrdersClient({ orders }: { orders: Order[] }) {
                 <div>
                   <p style={{ margin: "0 0 12px", fontSize: "12px", color: "#555", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>Shipping Address</p>
                   <div style={{ fontSize: "13px", color: "#888", lineHeight: "1.7" }}>
-                    {order.shipping_address?.street && <p style={{ margin: 0 }}>{order.shipping_address.street}</p>}
-                    {order.shipping_address?.city && <p style={{ margin: 0 }}>{order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.zip}</p>}
-                    {order.shipping_address?.country && <p style={{ margin: 0 }}>{order.shipping_address.country}</p>}
+                    {order.shipping_address?.customerPhone && <p style={{ margin: 0 }}>Phone: {order.shipping_address.customerPhone}</p>}
+                    {(order.shipping_address?.address || order.shipping_address?.street) && <p style={{ margin: 0 }}>{order.shipping_address.address ?? order.shipping_address.street}</p>}
+                    {(order.shipping_address?.communeNameAr || order.shipping_address?.city) && (
+                      <p style={{ margin: 0 }}>
+                        {order.shipping_address.communeNameAr ?? order.shipping_address.city}, {order.shipping_address.wilayaNameAr ?? order.shipping_address.state}
+                      </p>
+                    )}
+                    {order.shipping_address?.deliveryLabelAr && <p style={{ margin: 0 }}>Delivery: {order.shipping_address.deliveryLabelAr}</p>}
+                    {typeof order.shipping_address?.shippingPrice === "number" && (
+                      <p style={{ margin: 0 }}>Shipping: {formatPrice(order.shipping_address.shippingPrice, "DZD")}</p>
+                    )}
+                    {order.shipping_address?.notes && <p style={{ margin: "6px 0 0", color: "#aaa" }}>Notes: {order.shipping_address.notes}</p>}
                   </div>
                 </div>
               </div>

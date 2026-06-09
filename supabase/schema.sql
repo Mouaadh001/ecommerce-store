@@ -75,6 +75,18 @@ CREATE TABLE IF NOT EXISTS order_items (
 );
 
 -- ============================================================
+-- SHIPPING PRICES
+-- ============================================================
+CREATE TABLE IF NOT EXISTS shipping_prices (
+  wilaya_code    TEXT PRIMARY KEY,
+  wilaya_name_ar TEXT NOT NULL,
+  wilaya_name_fr TEXT NOT NULL,
+  home_price     NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (home_price >= 0),
+  office_price   NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (office_price >= 0),
+  updated_at     TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================
 -- INDEXES for performance
 -- ============================================================
 CREATE INDEX IF NOT EXISTS idx_products_slug       ON products(slug);
@@ -113,10 +125,16 @@ CREATE TRIGGER on_auth_user_created
 -- Categories: public read
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "categories_public_read" ON categories FOR SELECT USING (true);
+CREATE POLICY "categories_admin_all" ON categories FOR ALL
+  USING ((auth.jwt()->>'email') = 'mikacheabdou@gmail.com')
+  WITH CHECK ((auth.jwt()->>'email') = 'mikacheabdou@gmail.com');
 
 -- Products: public read
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "products_public_read" ON products FOR SELECT USING (true);
+CREATE POLICY "products_admin_all" ON products FOR ALL
+  USING ((auth.jwt()->>'email') = 'mikacheabdou@gmail.com')
+  WITH CHECK ((auth.jwt()->>'email') = 'mikacheabdou@gmail.com');
 
 -- Profiles: owner can read/update their own
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -128,6 +146,11 @@ CREATE POLICY "profiles_owner_update" ON profiles FOR UPDATE USING (auth.uid() =
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "orders_owner_select" ON orders FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "orders_public_insert" ON orders FOR INSERT WITH CHECK (true);
+CREATE POLICY "orders_admin_select" ON orders FOR SELECT
+  USING ((auth.jwt()->>'email') = 'mikacheabdou@gmail.com');
+CREATE POLICY "orders_admin_update" ON orders FOR UPDATE
+  USING ((auth.jwt()->>'email') = 'mikacheabdou@gmail.com')
+  WITH CHECK ((auth.jwt()->>'email') = 'mikacheabdou@gmail.com');
 
 -- Order Items: readable if the parent order belongs to the user
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
@@ -136,6 +159,15 @@ CREATE POLICY "order_items_owner_select" ON order_items FOR SELECT
     SELECT 1 FROM orders WHERE orders.id = order_items.order_id AND orders.user_id = auth.uid()
   ));
 CREATE POLICY "order_items_public_insert" ON order_items FOR INSERT WITH CHECK (true);
+CREATE POLICY "order_items_admin_select" ON order_items FOR SELECT
+  USING ((auth.jwt()->>'email') = 'mikacheabdou@gmail.com');
+
+-- Shipping Prices: public read; admin writes
+ALTER TABLE shipping_prices ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "shipping_prices_public_read" ON shipping_prices FOR SELECT USING (true);
+CREATE POLICY "shipping_prices_admin_all" ON shipping_prices FOR ALL
+  USING ((auth.jwt()->>'email') = 'mikacheabdou@gmail.com')
+  WITH CHECK ((auth.jwt()->>'email') = 'mikacheabdou@gmail.com');
 
 -- ============================================================
 -- SEED DATA — Sample Categories

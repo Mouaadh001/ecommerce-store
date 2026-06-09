@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Package, ShoppingBag, DollarSign, Users, ArrowRight } from "lucide-react";
+import { Package, ShoppingBag, DollarSign, ArrowRight } from "lucide-react";
+import { formatPrice } from "@/lib/utils";
 
 export default async function AdminDashboard() {
   const supabase = await createClient();
@@ -17,7 +18,7 @@ export default async function AdminDashboard() {
   const stats = [
     { label: "Total Products", value: productCount ?? 0, icon: Package, color: "#8b5cf6", bg: "rgba(139,92,246,0.1)" },
     { label: "Total Orders", value: orderCount ?? 0, icon: ShoppingBag, color: "#06b6d4", bg: "rgba(6,182,212,0.1)" },
-    { label: "Revenue (last 5)", value: `$${revenue.toFixed(2)}`, icon: DollarSign, color: "#10b981", bg: "rgba(16,185,129,0.1)" },
+    { label: "Revenue (last 5)", value: formatPrice(revenue, "DZD"), icon: DollarSign, color: "#10b981", bg: "rgba(16,185,129,0.1)" },
   ];
 
   return (
@@ -73,7 +74,7 @@ export default async function AdminDashboard() {
               <tr key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
                 <td style={{ padding: "12px 0", color: "#e1e1e8" }}>{order.customer_name ?? "Guest"}</td>
                 <td style={{ padding: "12px 0", color: "#666" }}>{order.customer_email ?? "—"}</td>
-                <td style={{ padding: "12px 0", color: "#10b981", fontWeight: 600 }}>${Number(order.total).toFixed(2)}</td>
+                <td style={{ padding: "12px 0", color: "#10b981", fontWeight: 600 }}>{formatPrice(Number(order.total), "DZD")}</td>
                 <td style={{ padding: "12px 0" }}>
                   <span style={{ background: order.status === "pending" ? "rgba(245,158,11,0.15)" : "rgba(16,185,129,0.15)", color: order.status === "pending" ? "#fbbf24" : "#34d399", padding: "2px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: 600, textTransform: "capitalize" }}>
                     {order.status}
