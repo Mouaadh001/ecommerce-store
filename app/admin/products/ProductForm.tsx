@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Product, Category } from "@/types";
@@ -15,6 +15,7 @@ export default function ProductForm({ categories, product }: Props) {
   const isEdit = !!product;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
 
   const [form, setForm] = useState({
     name: product?.name ?? "",
@@ -41,18 +42,96 @@ export default function ProductForm({ categories, product }: Props) {
       .map((item) => item.trim())
       .filter(Boolean);
 
+  const filePreviews = useMemo(
+    () => imageFiles.map((file) => ({ file, url: URL.createObjectURL(file) })),
+    [imageFiles]
+  );
+
+  useEffect(() => {
+    return () => {
+      filePreviews.forEach((preview) => URL.revokeObjectURL(preview.url));
+    };
+  }, [filePreviews]);
+
+  const addImageFiles = (files: FileList | null) => {
+    if (!files?.length) return;
+
+    setError("");
+    const accepted = Array.from(files).filter((file) => {
+      if (!file.type.startsWith("image/")) {
+        setError("Only image files are allowed.");
+        return false;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Each image must be 5MB or smaller.");
+        return false;
+      }
+
+      return true;
+    });
+
+    setImageFiles((current) => [...current, ...accepted]);
+  };
+
+  const removeImageFile = (index: number) => {
+    setImageFiles((current) => current.filter((_, i) => i !== index));
+  };
+
+  const uploadImages = async (slug: string) => {
+    if (imageFiles.length === 0) return [];
+
+    const supabase = createClient();
+    const uploadedUrls: string[] = [];
+
+    for (const file of imageFiles) {
+      const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `${slug}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+      const { error: uploadError } = await supabase.storage
+        .from("product-images")
+        .upload(path, file, {
+          cacheControl: "31536000",
+          upsert: false,
+        });
+
+      if (uploadError) throw new Error(uploadError.message);
+
+      const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+      uploadedUrls.push(data.publicUrl);
+    }
+
+    return uploadedUrls;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
+    const slug = form.slug.trim() || autoSlug(form.name);
+
+    if (!slug) {
+      setError("Product name or slug is required.");
+      setLoading(false);
+      return;
+    }
+
+    let uploadedImages: string[] = [];
+    try {
+      uploadedImages = await uploadImages(slug);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "Image upload failed.");
+      setLoading(false);
+      return;
+    }
+
     const payload = {
       name: form.name.trim(),
-      slug: form.slug.trim() || autoSlug(form.name),
+      slug,
       description: form.description.trim(),
       price: parseFloat(form.price),
       compare_at_price: form.compare_at_price ? parseFloat(form.compare_at_price) : null,
-      images: parseList(form.images),
+      images: [...parseList(form.images), ...uploadedImages],
       colors: parseList(form.colors),
       sizes: parseList(form.sizes),
       category_id: form.category_id || null,
@@ -137,9 +216,67 @@ export default function ProductForm({ categories, product }: Props) {
 
         {/* Images */}
         <div>
-          <label style={labelStyle}>Image URLs (comma-separated)</label>
+          <label style={labelStyle}>Images</label>
+          <label
+            style={{
+              ...inputStyle,
+              minHeight: "112px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexDirection: "column",
+              gap: "8px",
+              cursor: "pointer",
+              borderStyle: "dashed",
+              color: "#a1a1aa",
+            }}
+          >
+            <span style={{ color: "#e1e1e8", fontWeight: 700 }}>Choose images from your computer</span>
+            <span style={{ fontSize: "12px", color: "#666" }}>JPG, PNG, WebP, or GIF. Max 5MB each.</span>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(event) => addImageFiles(event.target.files)}
+              style={{ display: "none" }}
+            />
+          </label>
+          {filePreviews.length > 0 && (
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "12px" }}>
+              {filePreviews.map((preview, index) => (
+                <div key={preview.url} style={{ position: "relative", width: "84px", height: "84px" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={preview.url} alt={preview.file.name} style={{ width: "100%", height: "100%", borderRadius: "10px", objectFit: "cover", border: "1px solid rgba(255,255,255,0.08)" }} />
+                  <button
+                    type="button"
+                    onClick={() => removeImageFile(index)}
+                    aria-label={`Remove ${preview.file.name}`}
+                    style={{
+                      position: "absolute",
+                      top: "-7px",
+                      right: "-7px",
+                      width: "22px",
+                      height: "22px",
+                      borderRadius: "999px",
+                      border: "1px solid rgba(255,255,255,0.16)",
+                      background: "#18181f",
+                      color: "#fff",
+                      cursor: "pointer",
+                      lineHeight: 1,
+                    }}
+                  >
+                    x
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label style={labelStyle}>Image URLs (optional)</label>
           <textarea rows={3} style={{ ...inputStyle, resize: "vertical" }} value={form.images} onChange={(e) => set("images", e.target.value)} placeholder="https://..., https://..." />
-          <p style={{ margin: "6px 0 0", fontSize: "12px", color: "#555" }}>Paste Unsplash or any public image URLs, separated by commas</p>
+          <p style={{ margin: "6px 0 0", fontSize: "12px", color: "#555" }}>You can still paste public image URLs, separated by commas</p>
           {parseList(form.images).length > 0 && (
             <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "12px" }}>
               {parseList(form.images).slice(0, 6).map((image, index) => (
