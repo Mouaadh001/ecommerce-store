@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { resend } from "@/lib/resend";
+import { getResend } from "@/lib/resend";
 import { formatPrice, formatDate } from "@/lib/utils";
 
 export async function POST(req: NextRequest) {
@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
 
     // Send confirmation email
     if (process.env.RESEND_API_KEY) {
-      await resend.emails.send({
+      await getResend().emails.send({
         from: "Luminary Store <noreply@luminarystore.com>",
         to: customer.email,
         subject: `Order Confirmed — #${order.id.slice(0, 8).toUpperCase()}`,
