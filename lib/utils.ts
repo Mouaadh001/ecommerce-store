@@ -5,7 +5,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatPrice(price: number, currency = "USD"): string {
+export function formatPrice(price: number, currency = "DZD"): string {
+  if (currency === "DZD") {
+    return `${new Intl.NumberFormat("fr-DZ", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(price)} DA`;
+  }
+
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,

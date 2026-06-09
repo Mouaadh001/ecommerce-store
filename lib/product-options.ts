@@ -1,21 +1,55 @@
 import type { Product, ProductColorVariant } from "@/types";
 
 export function getProductColorVariants(product: Pick<Product, "colors" | "color_variants">) {
-  const variants = Array.isArray(product.color_variants)
-    ? product.color_variants.filter((variant): variant is ProductColorVariant =>
-        Boolean(variant?.label?.trim())
-      )
+  const rawVariants =
+    typeof product.color_variants === "string"
+      ? safeParseVariants(product.color_variants)
+      : product.color_variants;
+  const variants = Array.isArray(rawVariants)
+    ? rawVariants
+        .map((variant, index) => normalizeVariant(variant, index))
+        .filter((variant): variant is ProductColorVariant => Boolean(variant))
     : [];
 
   if (variants.length > 0) {
     return variants;
   }
 
-  return (product.colors ?? []).map((color) => ({
+  return (product.colors ?? []).filter(Boolean).map((color) => ({
     label: color,
-    value: "#111111",
+    value: color.startsWith("#") ? color : "#ffffff",
     image_url: null,
   }));
+}
+
+function safeParseVariants(value: string) {
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return [];
+  }
+}
+
+function normalizeVariant(value: unknown, index: number): ProductColorVariant | null {
+  if (!value || typeof value !== "object") return null;
+
+  const variant = value as Partial<ProductColorVariant>;
+  const colorValue =
+    typeof variant.value === "string" && variant.value.trim()
+      ? variant.value
+      : "#ffffff";
+
+  return {
+    label:
+      typeof variant.label === "string" && variant.label.trim()
+        ? variant.label.trim()
+        : `Color ${index + 1}`,
+    value: colorValue,
+    image_url:
+      typeof variant.image_url === "string" && variant.image_url.trim()
+        ? variant.image_url
+        : null,
+  };
 }
 
 export function getReadableTextColor(hex: string) {

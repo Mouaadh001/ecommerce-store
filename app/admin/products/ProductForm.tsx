@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { getProductColorVariants } from "@/lib/product-options";
 import type { Product, Category } from "@/types";
 
 type ColorVariantDraft = {
@@ -24,13 +25,7 @@ export default function ProductForm({ categories, product }: Props) {
   const [error, setError] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [colorVariants, setColorVariants] = useState<ColorVariantDraft[]>(() => {
-    const variants = product?.color_variants?.length
-      ? product.color_variants
-      : product?.colors?.map((color) => ({
-          label: color,
-          value: "#111111",
-          image_url: null,
-        })) ?? [];
+    const variants = product ? getProductColorVariants(product) : [];
 
     return variants.map((variant) => ({
       label: variant.label,
@@ -183,15 +178,27 @@ export default function ProductForm({ categories, product }: Props) {
     const manualImages = parseList(form.images);
     const allImages = [...manualImages, ...uploadedImages];
     const normalizedColorVariants = colorVariants
-      .map((variant) => ({
-        label: variant.label.trim(),
-        value: variant.value || "#111111",
-        image_url:
-          variant.imageFileIndex !== null
-            ? uploadedImages[variant.imageFileIndex] ?? null
-            : variant.image_url.trim() || null,
-      }))
-      .filter((variant) => variant.label);
+      .map((variant, index) => {
+        const hasColorData =
+          variant.label.trim() ||
+          variant.value !== "#111111" ||
+          variant.image_url.trim() ||
+          variant.imageFileIndex !== null;
+
+        if (!hasColorData) return null;
+
+        return {
+          label: variant.label.trim() || `Color ${index + 1}`,
+          value: variant.value || "#111111",
+          image_url:
+            variant.imageFileIndex !== null
+              ? uploadedImages[variant.imageFileIndex] ?? null
+              : variant.image_url.trim() || null,
+        };
+      })
+      .filter((variant): variant is { label: string; value: string; image_url: string | null } =>
+        Boolean(variant)
+      );
 
     const payload = {
       name: form.name.trim(),

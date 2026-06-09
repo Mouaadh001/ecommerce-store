@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ShoppingBag, Star } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import { Product } from "@/types";
 import { getProductColorVariants } from "@/lib/product-options";
 import { formatPrice } from "@/lib/utils";
@@ -77,17 +77,13 @@ export function ProductCard({ product, className }: ProductCardProps) {
               )}
               <p className="text-sm font-medium truncate">{product.name}</p>
             </div>
-            <div className="flex items-center gap-0.5 flex-shrink-0">
-              <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-              <span className="text-xs text-muted-foreground">4.9</span>
-            </div>
           </div>
 
           <div className="flex items-center gap-2 mt-2">
-            <span className="text-sm font-semibold">{formatPrice(product.price)}</span>
+            <span className="text-sm font-semibold">{formatPrice(product.price, "DZD")}</span>
             {product.compare_at_price && (
               <span className="text-xs text-muted-foreground line-through">
-                {formatPrice(product.compare_at_price)}
+                {formatPrice(product.compare_at_price, "DZD")}
               </span>
             )}
           </div>

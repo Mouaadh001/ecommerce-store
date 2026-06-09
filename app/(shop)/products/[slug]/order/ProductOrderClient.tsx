@@ -293,7 +293,7 @@ export default function ProductOrderClient({
                         onClick={() => setSelectedColor(color.label)}
                         className={`inline-flex min-h-9 items-center gap-2 rounded-lg border px-3 text-sm transition-colors ${
                           selectedColor === color.label
-                            ? "border-foreground shadow-sm"
+                            ? "border-white shadow-sm ring-2 ring-white/70"
                             : "border-border bg-background hover:bg-muted"
                         }`}
                         style={
@@ -327,9 +327,14 @@ export default function ProductOrderClient({
                         onClick={() => setSelectedSize(size)}
                         className={`min-h-9 min-w-10 rounded-lg border px-3 text-sm font-medium transition-colors ${
                           selectedSize === size
-                            ? "border-foreground bg-foreground text-background"
+                            ? "border-white bg-white text-black shadow-sm ring-2 ring-white/70"
                             : "border-border bg-background hover:bg-muted"
                         }`}
+                        style={
+                          selectedSize === size
+                            ? { backgroundColor: "#ffffff", color: "#000000", borderColor: "#ffffff" }
+                            : undefined
+                        }
                       >
                         {size}
                       </button>

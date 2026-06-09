@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ShoppingBag, Star, Minus, Plus } from "lucide-react";
+import { ShoppingBag, Minus, Plus } from "lucide-react";
 import { Product } from "@/types";
 import { getProductColorVariants, getReadableTextColor } from "@/lib/product-options";
 import { formatPrice } from "@/lib/utils";
@@ -103,21 +103,13 @@ export function ProductDetailClient({ product, relatedProducts }: Props) {
 
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{product.name}</h1>
-            <div className="flex items-center gap-3 mt-3">
-              <div className="flex items-center gap-1">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className={cn("w-4 h-4", i < 4 ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground")} />
-                ))}
-              </div>
-              <span className="text-sm text-muted-foreground">4.9 (128 reviews)</span>
-            </div>
           </div>
 
           <div className="flex items-baseline gap-3">
-            <span className="text-3xl sm:text-4xl font-bold">{formatPrice(product.price)}</span>
+            <span className="text-3xl sm:text-4xl font-bold">{formatPrice(product.price, "DZD")}</span>
             {product.compare_at_price && (
               <span className="text-xl text-muted-foreground line-through">
-                {formatPrice(product.compare_at_price)}
+                {formatPrice(product.compare_at_price, "DZD")}
               </span>
             )}
             {discount && (
@@ -145,7 +137,7 @@ export function ProductDetailClient({ product, relatedProducts }: Props) {
                         className={cn(
                           "inline-flex min-h-10 items-center gap-2 rounded-xl border px-4 text-sm transition-colors",
                           selectedColor === color.label
-                            ? "border-foreground shadow-sm"
+                            ? "border-white shadow-sm ring-2 ring-white/70"
                             : "border-border bg-background hover:bg-muted"
                         )}
                         style={
@@ -180,9 +172,14 @@ export function ProductDetailClient({ product, relatedProducts }: Props) {
                         className={cn(
                           "min-h-10 min-w-12 rounded-xl border px-4 text-sm font-medium transition-colors",
                           selectedSize === size
-                            ? "border-foreground bg-foreground text-background"
+                            ? "border-white bg-white text-black shadow-sm ring-2 ring-white/70"
                             : "border-border bg-background hover:bg-muted"
                         )}
+                        style={
+                          selectedSize === size
+                            ? { backgroundColor: "#ffffff", color: "#000000", borderColor: "#ffffff" }
+                            : undefined
+                        }
                       >
                         {size}
                       </button>

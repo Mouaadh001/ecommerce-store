@@ -24,7 +24,7 @@ export interface Product {
   compare_at_price: number | null;
   images: string[];
   colors: string[];
-  color_variants: ProductColorVariant[];
+  color_variants: ProductColorVariant[] | string;
   sizes: string[];
   category_id: string | null;
   stock: number;
