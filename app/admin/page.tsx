@@ -1,24 +1,41 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Package, ShoppingBag, DollarSign, ArrowRight, PlusCircle } from "lucide-react";
+import { Package, ShoppingBag, ArrowRight, PlusCircle } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
+
+function DaIcon({ size = 22 }: { size?: number }) {
+  return (
+    <span style={{ fontSize: Math.max(12, size * 0.58), fontWeight: 850, letterSpacing: 0, lineHeight: 1 }}>
+      DA
+    </span>
+  );
+}
 
 export default async function AdminDashboard() {
   const supabase = await createClient();
+  const sevenDayStart = new Date();
+  sevenDayStart.setHours(0, 0, 0, 0);
+  sevenDayStart.setDate(sevenDayStart.getDate() - 6);
 
-  const [{ count: productCount }, { count: orderCount }, { data: orders }] =
+  const [{ count: productCount }, { count: orderCount }, { data: orders }, { data: deliveredOrders }] =
     await Promise.all([
       supabase.from("products").select("*", { count: "exact", head: true }),
       supabase.from("orders").select("*", { count: "exact", head: true }),
       supabase.from("orders").select("total, status, customer_name, customer_email, created_at").order("created_at", { ascending: false }).limit(5),
+      supabase
+        .from("orders")
+        .select("total")
+        .eq("status", "delivered")
+        .gte("created_at", sevenDayStart.toISOString()),
     ]);
 
-  const revenue = orders?.reduce((sum, o) => sum + Number(o.total), 0) ?? 0;
+  const deliveredRevenue =
+    deliveredOrders?.reduce((sum, order) => sum + Number(order.total), 0) ?? 0;
 
   const stats = [
     { label: "Total Products", value: productCount ?? 0, icon: Package, color: "#8b5cf6", bg: "rgba(139,92,246,0.1)" },
     { label: "Total Orders", value: orderCount ?? 0, icon: ShoppingBag, color: "#06b6d4", bg: "rgba(6,182,212,0.1)" },
-    { label: "Revenue (last 5)", value: formatPrice(revenue, "DZD"), icon: DollarSign, color: "#10b981", bg: "rgba(16,185,129,0.1)" },
+    { label: "Delivered Revenue (7 days)", value: formatPrice(deliveredRevenue, "DZD"), icon: DaIcon, color: "#10b981", bg: "rgba(16,185,129,0.1)" },
   ];
 
   return (

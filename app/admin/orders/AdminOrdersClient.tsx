@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import type { OrderStatus } from "@/types";
 import { formatPrice } from "@/lib/utils";
+import { Trash2 } from "lucide-react";
 
 const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   pending:    { bg: "rgba(245,158,11,0.15)",  color: "#fbbf24" },
@@ -38,6 +39,7 @@ export default function AdminOrdersClient({ orders }: { orders: Order[] }) {
   const router = useRouter();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const updateStatus = async (id: string, status: OrderStatus) => {
     setUpdating(id);
@@ -45,6 +47,24 @@ export default function AdminOrdersClient({ orders }: { orders: Order[] }) {
     await supabase.from("orders").update({ status }).eq("id", id);
     router.refresh();
     setUpdating(null);
+  };
+
+  const deleteOrder = async (id: string) => {
+    if (!confirm(`Delete order #${id.slice(0, 8).toUpperCase()}? This cannot be undone.`)) return;
+
+    setDeleting(id);
+    const response = await fetch(`/api/admin/orders/${id}`, { method: "DELETE" });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      alert(data?.error ?? "Failed to delete order");
+      setDeleting(null);
+      return;
+    }
+
+    if (expanded === id) setExpanded(null);
+    router.refresh();
+    setDeleting(null);
   };
 
   return (
@@ -64,7 +84,7 @@ export default function AdminOrdersClient({ orders }: { orders: Order[] }) {
             {/* Header row */}
             <div
               onClick={() => setExpanded(isOpen ? null : order.id)}
-              style={{ display: "grid", gridTemplateColumns: "minmax(180px,2fr) minmax(150px,1.6fr) minmax(120px,1fr) minmax(130px,1.2fr) auto", alignItems: "center", gap: "16px", padding: "17px 20px", cursor: "pointer" }}
+              style={{ display: "grid", gridTemplateColumns: "minmax(180px,2fr) minmax(150px,1.6fr) minmax(120px,1fr) minmax(130px,1.2fr) auto auto", alignItems: "center", gap: "16px", padding: "17px 20px", cursor: "pointer" }}
             >
               <div>
                 <p style={{ margin: 0, color: "#f4f4f5", fontWeight: 650, fontSize: "14px" }}>{order.customer_name ?? "Guest"}</p>
@@ -94,6 +114,32 @@ export default function AdminOrdersClient({ orders }: { orders: Order[] }) {
                   ))}
                 </select>
               </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void deleteOrder(order.id);
+                }}
+                disabled={deleting === order.id}
+                aria-label={`Delete order ${order.id.slice(0, 8).toUpperCase()}`}
+                title="Delete order"
+                style={{
+                  width: "36px",
+                  height: "36px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "10px",
+                  border: "1px solid rgba(248,113,113,0.28)",
+                  background: "rgba(239,68,68,0.1)",
+                  color: "#f87171",
+                  cursor: deleting === order.id ? "wait" : "pointer",
+                  opacity: deleting === order.id ? 0.55 : 1,
+                  transition: "transform 0.18s ease, border-color 0.18s ease, background 0.18s ease",
+                }}
+              >
+                <Trash2 size={16} />
+              </button>
               <div style={{ color: "#71717a", fontSize: "18px", transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▾</div>
             </div>
 
