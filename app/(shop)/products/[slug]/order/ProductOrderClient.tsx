@@ -24,22 +24,16 @@ import { Separator } from "@/components/ui/separator";
 type FormState = {
   fullName: string;
   phone: string;
-  email: string;
   wilayaCode: string;
   communeId: string;
-  address: string;
-  notes: string;
   deliveryType: DeliveryType;
 };
 
 const initialForm: FormState = {
   fullName: "",
   phone: "",
-  email: "",
   wilayaCode: "",
   communeId: "",
-  address: "",
-  notes: "",
   deliveryType: "home",
 };
 
@@ -93,7 +87,7 @@ export default function ProductOrderClient({
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!form.fullName.trim() || !form.phone.trim() || !form.wilayaCode || !form.communeId || !form.address.trim()) {
+    if (!form.fullName.trim() || !form.phone.trim() || !form.wilayaCode || !form.communeId) {
       toast.error("يرجى ملء كل المعلومات المطلوبة");
       return;
     }
@@ -105,7 +99,7 @@ export default function ProductOrderClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer: {
-            email: form.email.trim() || null,
+            email: null,
             fullName: form.fullName.trim(),
             phone: form.phone.trim(),
           },
@@ -117,8 +111,8 @@ export default function ProductOrderClient({
             communeId: form.communeId,
             communeNameAr: selectedCommune?.nameAr,
             communeNameFr: selectedCommune?.nameFr,
-            address: form.address.trim(),
-            notes: form.notes.trim(),
+            address: "",
+            notes: "",
             deliveryType: form.deliveryType,
           },
           items: [
@@ -175,17 +169,15 @@ export default function ProductOrderClient({
             <h1 className="text-xl sm:text-2xl font-bold">معلومات الطلب</h1>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="الاسم الكامل *" id="fullName">
-                <Input id="fullName" value={form.fullName} onChange={(e) => set("fullName", e.target.value)} placeholder="مثال: محمد أمين" />
+                <Input id="fullName" required value={form.fullName} onChange={(e) => set("fullName", e.target.value)} placeholder="مثال: محمد أمين" />
               </Field>
               <Field label="رقم الهاتف *" id="phone">
-                <Input id="phone" type="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="0550 00 00 00" />
-              </Field>
-              <Field label="البريد الإلكتروني" id="email">
-                <Input id="email" type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="اختياري" />
+                <Input id="phone" type="tel" required value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="0550 00 00 00" />
               </Field>
               <Field label="نوع التوصيل *" id="deliveryType">
                 <select
                   id="deliveryType"
+                  required
                   value={form.deliveryType}
                   onChange={(e) => set("deliveryType", e.target.value)}
                   className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-foreground"
@@ -203,6 +195,7 @@ export default function ProductOrderClient({
               <Field label="الولاية *" id="wilaya">
                 <select
                   id="wilaya"
+                  required
                   value={form.wilayaCode}
                   onChange={(e) => set("wilayaCode", e.target.value)}
                   className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-foreground"
@@ -218,6 +211,7 @@ export default function ProductOrderClient({
               <Field label="البلدية / المدينة *" id="commune">
                 <select
                   id="commune"
+                  required
                   value={form.communeId}
                   onChange={(e) => set("communeId", e.target.value)}
                   disabled={!selectedWilaya}
@@ -231,23 +225,6 @@ export default function ProductOrderClient({
                   ))}
                 </select>
               </Field>
-              <div className="sm:col-span-2">
-                <Field label="العنوان الكامل *" id="address">
-                  <Input id="address" value={form.address} onChange={(e) => set("address", e.target.value)} placeholder="الحي، الشارع، رقم المنزل..." />
-                </Field>
-              </div>
-              <div className="sm:col-span-2">
-                <Field label="ملاحظات" id="notes">
-                  <textarea
-                    id="notes"
-                    rows={3}
-                    value={form.notes}
-                    onChange={(e) => set("notes", e.target.value)}
-                    placeholder="معلومات إضافية للتوصيل"
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-foreground"
-                  />
-                </Field>
-              </div>
             </div>
           </section>
         </div>
@@ -363,7 +340,7 @@ export default function ProductOrderClient({
 
           <Button type="submit" size="lg" className="w-full" loading={loading}>
             <Lock className="w-4 h-4" />
-            {loading ? "جاري إرسال الطلب..." : "تأكيد الطلب"}
+            {loading ? "جاري إرسال الطلب..." : "اطلب الآن"}
           </Button>
         </aside>
       </form>

@@ -3,22 +3,24 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ShoppingBag, Minus, Plus } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 import { Product } from "@/types";
 import { getProductColorVariants, getReadableTextColor } from "@/lib/product-options";
+import { type ShippingPrice } from "@/lib/shipping";
 import { formatPrice } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ProductCard } from "@/components/products/ProductCard";
 import { cn } from "@/lib/utils";
+import { ProductInlineOrderForm } from "./ProductInlineOrderForm";
 
 interface Props {
   product: Product;
   relatedProducts: Product[];
+  shippingPrices: ShippingPrice[];
 }
 
-export function ProductDetailClient({ product, relatedProducts }: Props) {
+export function ProductDetailClient({ product, relatedProducts, shippingPrices }: Props) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const colors = getProductColorVariants(product);
@@ -31,12 +33,6 @@ export function ProductDetailClient({ product, relatedProducts }: Props) {
   const discount = product.compare_at_price
     ? Math.round((1 - product.price / product.compare_at_price) * 100)
     : null;
-  const orderParams = new URLSearchParams({ quantity: String(quantity) });
-  if (selectedColor) orderParams.set("color", selectedColor);
-  if (selectedColorVariant?.value) orderParams.set("colorValue", selectedColorVariant.value);
-  if (selectedColorVariant?.image_url) orderParams.set("colorImage", selectedColorVariant.image_url);
-  if (selectedSize) orderParams.set("size", selectedSize);
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
       {/* Breadcrumb */}
@@ -211,25 +207,16 @@ export function ProductDetailClient({ product, relatedProducts }: Props) {
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
-              <span className="text-sm text-muted-foreground">
-                {product.stock > 0 ? "In stock" : "Out of stock"}
-              </span>
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-2 sm:gap-3">
-            <Button
-              size="lg"
-              className="flex-1 text-sm sm:text-base"
-              disabled={product.stock === 0}
-              asChild
-            >
-              <Link href={`/products/${product.slug}/order?${orderParams.toString()}`}>
-                <ShoppingBag className="w-4 h-4" /> Order Now
-              </Link>
-            </Button>
-          </div>
+          <ProductInlineOrderForm
+            product={product}
+            shippingPrices={shippingPrices}
+            quantity={quantity}
+            selectedColor={selectedColor}
+            selectedSize={selectedSize}
+          />
 
         </div>
       </div>
