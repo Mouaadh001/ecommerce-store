@@ -3,6 +3,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getResend } from "@/lib/resend";
 import { formatPrice, formatDate } from "@/lib/utils";
 import { ADMIN_EMAIL } from "@/lib/admin";
+const ORDER_NOTIFICATION_EMAIL = process.env.ORDER_NOTIFICATION_EMAIL || ADMIN_EMAIL;
 import { getProductColorVariants } from "@/lib/product-options";
 import {
   DELIVERY_LABELS_AR,
@@ -255,12 +256,13 @@ export async function POST(req: NextRequest) {
     // Send confirmation email to customer
     if (process.env.RESEND_API_KEY) {
       if (customer.email) {
-        await getResend().emails.send({
-          from: "Luminary Store <noreply@luminarystore.com>",
+        const { error } = await getResend().emails.send({
+          from: "Luminary Store <onboarding@resend.dev>",
           to: customer.email,
           subject: `Order Confirmed — #${order.id.slice(0, 8).toUpperCase()}`,
           html: emailHtml,
         });
+        if (error) console.error("[Resend Customer Email Error]:", error);
       }
 
       // Build admin notification email with ALL order details
@@ -367,13 +369,14 @@ export async function POST(req: NextRequest) {
       `;
 
       // Send admin notification
-      if (ADMIN_EMAIL) {
-        await getResend().emails.send({
-          from: "Luminary Store <noreply@luminarystore.com>",
-          to: ADMIN_EMAIL,
+      if (ORDER_NOTIFICATION_EMAIL) {
+        const { error } = await getResend().emails.send({
+          from: "Luminary Store <onboarding@resend.dev>",
+          to: ORDER_NOTIFICATION_EMAIL,
           subject: `🛍️ New Order #${order.id.slice(0, 8).toUpperCase()} — ${customer.fullName} (${formatPrice(total)})`,
           html: adminEmailHtml,
         });
+        if (error) console.error("[Resend Admin Email Error]:", error);
       }
     }
 
