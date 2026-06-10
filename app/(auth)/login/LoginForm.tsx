@@ -10,7 +10,6 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { isAdminEmail } from "@/lib/admin";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email"),
@@ -43,7 +42,7 @@ export function LoginForm() {
 
     toast.success("Welcome back!");
     const redirectTo = searchParams.get("redirect");
-    router.push(isAdminEmail(data.email) ? "/admin" : redirectTo ?? "/products");
+    router.push(redirectTo ?? "/admin");
     router.refresh();
   };
 

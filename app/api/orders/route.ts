@@ -3,6 +3,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getResend } from "@/lib/resend";
 import { formatPrice, formatDate } from "@/lib/utils";
 import { getProductColorVariants } from "@/lib/product-options";
+import { WILAYAS } from "@/lib/algeria";
 import {
   DELIVERY_LABELS_AR,
   getStopDeskPrice,
@@ -17,6 +18,16 @@ import { getStopDeskCommunes as getOfficeCommunes } from "@/lib/stop-desks";
 const DEFAULT_ORDER_NOTIFICATION_EMAIL = "mouad.2000.bk@gmail.com";
 const ORDER_NOTIFICATION_EMAIL =
   process.env.ORDER_NOTIFICATION_EMAIL || DEFAULT_ORDER_NOTIFICATION_EMAIL;
+const ORDER_RATE_LIMIT_WINDOW_MS = 60_000;
+const ORDER_RATE_LIMIT_MAX = 5;
+
+const orderRateLimitStore = globalThis as typeof globalThis & {
+  __orderRateLimit?: Map<string, { count: number; resetAt: number }>;
+};
+
+if (!orderRateLimitStore.__orderRateLimit) {
+  orderRateLimitStore.__orderRateLimit = new Map();
+}
 
 type SelectedOptions = {
   color?: string | null;
@@ -33,10 +44,86 @@ type EmailSendStatus = {
   skippedReason?: string;
 };
 
+function getAllowedOrigins(req: NextRequest) {
+  return [
+    req.nextUrl.origin,
+    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+  ].filter(Boolean);
+}
+
+function hasAllowedOrigin(req: NextRequest) {
+  const origin = req.headers.get("origin");
+  if (!origin) return true;
+
+  return getAllowedOrigins(req).some((allowedOrigin) => origin === allowedOrigin);
+}
+
+function getClientIp(req: NextRequest) {
+  return (
+    req.headers.get("cf-connecting-ip") ||
+    req.headers.get("x-real-ip") ||
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    "unknown"
+  );
+}
+
+function isRateLimited(ip: string) {
+  const now = Date.now();
+  const store = orderRateLimitStore.__orderRateLimit!;
+  const current = store.get(ip);
+
+  if (!current || current.resetAt <= now) {
+    store.set(ip, { count: 1, resetAt: now + ORDER_RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+
+  current.count += 1;
+  return current.count > ORDER_RATE_LIMIT_MAX;
+}
+
+function sanitizeText(value: unknown, maxLength: number) {
+  return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
+}
+
+function sanitizeNullableEmail(value: unknown) {
+  const email = sanitizeText(value, 254).toLowerCase();
+  return email.includes("@") ? email : null;
+}
+
+function escapeHtml(value: unknown) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function serializeEmailStatus(emailStatus: {
+  enabled: boolean;
+  customer: EmailSendStatus;
+  admin: EmailSendStatus;
+}) {
+  if (process.env.NODE_ENV !== "production") return emailStatus;
+
+  return {
+    enabled: emailStatus.enabled,
+    customer: {
+      recipient: emailStatus.customer.recipient,
+      sent: emailStatus.customer.sent,
+    },
+    admin: {
+      recipient: emailStatus.admin.recipient,
+      sent: emailStatus.admin.sent,
+    },
+  };
+}
+
 function formatSelectedOptions(options?: SelectedOptions | null) {
   const parts = [
-    options?.color ? `Color: ${options.color}` : null,
-    options?.size ? `Size: ${options.size}` : null,
+    options?.color ? `Color: ${escapeHtml(options.color)}` : null,
+    options?.size ? `Size: ${escapeHtml(options.size)}` : null,
   ].filter(Boolean);
 
   return parts.join(" | ");
@@ -55,23 +142,42 @@ function formatEmailError(error: unknown) {
 
 export async function POST(req: NextRequest) {
   try {
+    if (!hasAllowedOrigin(req)) {
+      return NextResponse.json({ error: "Invalid request origin" }, { status: 403 });
+    }
+
+    if (isRateLimited(getClientIp(req))) {
+      return NextResponse.json({ error: "Too many order attempts. Please try again soon." }, { status: 429 });
+    }
+
     const body = await req.json();
     const { customer, shippingAddress, items } = body;
 
-    const authClient = await createClient();
-    const supabase = await createServiceClient();
+    const supabase = await createClient();
+    const serviceSupabase = await createServiceClient();
+    const customerName = sanitizeText(customer?.fullName, 120);
+    const customerPhone = sanitizeText(customer?.phone, 40);
+    const customerEmail = sanitizeNullableEmail(customer?.email);
 
     // Get authenticated user (optional — guests allowed)
-    const { data: { user } } = await authClient.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!customerName || !customerPhone) {
+      return NextResponse.json({ error: "Customer name and phone are required" }, { status: 400 });
+    }
 
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: "No order items provided" }, { status: 400 });
     }
 
+    if (items.length > 20) {
+      return NextResponse.json({ error: "Too many order items" }, { status: 400 });
+    }
+
     const productIds = items.map((item: { product_id: string }) => item.product_id);
     const { data: products, error: productsError } = await supabase
       .from("products")
-      .select("id, name, price, colors, color_variants, sizes")
+      .select("id, name, price, stock, colors, color_variants, sizes")
       .in("id", productIds);
 
     if (productsError) throw productsError;
@@ -102,9 +208,20 @@ export async function POST(req: NextRequest) {
         throw new Error("Selected size is not available for this product");
       }
 
+      const quantity = Math.max(1, Math.min(20, Number(item.quantity) || 1));
+      const stock = Number(product.stock ?? 0);
+
+      if (stock <= 0) {
+        throw new Error("Product is out of stock");
+      }
+
+      if (quantity > stock) {
+        throw new Error("Requested quantity is not available");
+      }
+
       return {
         product_id: item.product_id,
-        quantity: Math.max(1, Number(item.quantity) || 1),
+        quantity,
         price_at_purchase: Number(product.price),
         selected_options: {
           color,
@@ -121,6 +238,22 @@ export async function POST(req: NextRequest) {
     );
     const deliveryType: DeliveryType =
       shippingAddress?.deliveryType === "office" ? "office" : "home";
+    const wilayaCode = sanitizeText(shippingAddress?.wilayaCode, 4);
+    const selectedWilaya = WILAYAS.find((wilaya) => wilaya.code === wilayaCode);
+
+    if (!selectedWilaya) {
+      return NextResponse.json({ error: "Valid wilaya is required" }, { status: 400 });
+    }
+
+    const communeId = sanitizeText(shippingAddress?.communeId, 80);
+    const selectedCommune =
+      deliveryType === "home"
+        ? selectedWilaya.communes.find((commune) => commune.id === communeId)
+        : null;
+
+    if (deliveryType === "home" && !selectedCommune) {
+      return NextResponse.json({ error: "Valid commune is required" }, { status: 400 });
+    }
 
     const [{ data: shippingRows }, { data: officePriceRows }] = await Promise.all([
       supabase.from("shipping_prices").select("*"),
@@ -135,8 +268,8 @@ export async function POST(req: NextRequest) {
         ? shippingAddress.stopDeskKey.trim()
         : "";
     const officeCommunes =
-      deliveryType === "office" && shippingAddress?.wilayaCode
-        ? getOfficeCommunes(shippingAddress.wilayaCode)
+      deliveryType === "office"
+        ? getOfficeCommunes(wilayaCode)
         : [];
     const selectedOffice = officeCommunes.find((office) => office.key === selectedOfficeKey);
 
@@ -144,25 +277,29 @@ export async function POST(req: NextRequest) {
       throw new Error("Selected office is not available for this wilaya");
     }
 
-    const shippingPrice = shippingAddress?.wilayaCode
-      ? deliveryType === "office"
-        ? getStopDeskPrice(officePrices, shippingAddress.wilayaCode, selectedOfficeKey)
-        : getShippingPrice(shippingPrices, shippingAddress.wilayaCode, deliveryType)
-      : 0;
+    const shippingPrice =
+      deliveryType === "office"
+        ? getStopDeskPrice(officePrices, wilayaCode, selectedOfficeKey)
+        : getShippingPrice(shippingPrices, wilayaCode, deliveryType);
     const total = subtotal + shippingPrice;
     const enrichedShippingAddress = {
-      ...shippingAddress,
-      customerPhone: customer.phone ?? null,
-      communeId: deliveryType === "office" ? null : shippingAddress?.communeId ?? null,
+      country: "Algeria",
+      wilayaCode,
+      wilayaNameAr: selectedWilaya.nameAr,
+      wilayaNameFr: selectedWilaya.nameFr,
+      customerPhone,
+      communeId: deliveryType === "office" ? null : selectedCommune?.id ?? null,
       communeNameAr:
         deliveryType === "office"
           ? selectedOffice?.nameAr ?? null
-          : shippingAddress?.communeNameAr ?? null,
+          : selectedCommune?.nameAr ?? null,
       communeNameFr:
         deliveryType === "office"
           ? selectedOffice?.nameFr ?? null
-          : shippingAddress?.communeNameFr ?? null,
+          : selectedCommune?.nameFr ?? null,
       stopDeskKey: deliveryType === "office" ? selectedOfficeKey : null,
+      address: sanitizeText(shippingAddress?.address, 200),
+      notes: sanitizeText(shippingAddress?.notes, 500),
       deliveryType,
       deliveryLabelAr: DELIVERY_LABELS_AR[deliveryType],
       productSubtotal: subtotal,
@@ -171,15 +308,15 @@ export async function POST(req: NextRequest) {
     };
 
     // Create order
-    const { data: order, error: orderError } = await supabase
+    const { data: order, error: orderError } = await serviceSupabase
       .from("orders")
       .insert({
         user_id: user?.id ?? null,
         status: "pending",
         total,
         shipping_address: enrichedShippingAddress,
-        customer_email: customer.email ?? null,
-        customer_name: customer.fullName,
+        customer_email: customerEmail,
+        customer_name: customerName,
       })
       .select()
       .single();
@@ -195,13 +332,21 @@ export async function POST(req: NextRequest) {
       selected_options: item.selected_options,
     }));
 
-    const { error: itemsError } = await supabase
+    const { error: itemsError } = await serviceSupabase
       .from("order_items")
       .insert(orderItemsWithOrder);
 
     if (itemsError) throw new Error(itemsError.message);
 
     // Build email HTML
+    const customerNameHtml = escapeHtml(customerName);
+    const customerEmailHtml = escapeHtml(customerEmail ?? "");
+    const customerPhoneHtml = escapeHtml(customerPhone);
+    const shippingAddressHtml = escapeHtml(enrichedShippingAddress.address);
+    const shippingCommuneHtml = escapeHtml(enrichedShippingAddress.communeNameAr);
+    const shippingWilayaHtml = escapeHtml(enrichedShippingAddress.wilayaNameAr);
+    const deliveryLabelHtml = escapeHtml(enrichedShippingAddress.deliveryLabelAr);
+
     const itemsHtml = orderItems
       .map((item) => {
         const product = productMap.get(item.product_id);
@@ -209,7 +354,7 @@ export async function POST(req: NextRequest) {
         return `
           <tr>
             <td style="padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
-              <strong>${product?.name ?? "Product"}</strong>
+              <strong>${escapeHtml(product?.name ?? "Product")}</strong>
               ${optionText ? `<br><span style="font-size: 12px; color: #777;">${optionText}</span>` : ""}
             </td>
             <td style="padding: 12px 0; border-bottom: 1px solid #f0f0f0; text-align: center;">
@@ -240,7 +385,7 @@ export async function POST(req: NextRequest) {
               ✅ Order Confirmed
             </h1>
             <p style="color: rgba(255,255,255,0.6); margin: 8px 0 0; font-size: 14px;">
-              Thank you for your purchase, ${customer.fullName}!
+              Thank you for your purchase, ${customerNameHtml}!
             </p>
           </div>
 
@@ -258,7 +403,7 @@ export async function POST(req: NextRequest) {
               </div>
               <div>
                 <p style="margin: 0 0 4px; font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.05em;">Email</p>
-                <p style="margin: 0; font-size: 14px; color: #0a0a0a;">${customer.email}</p>
+                <p style="margin: 0; font-size: 14px; color: #0a0a0a;">${customerEmailHtml}</p>
               </div>
             </div>
 
@@ -285,10 +430,10 @@ export async function POST(req: NextRequest) {
             <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e5e5;">
               <h2 style="font-size: 16px; margin: 0 0 12px; color: #0a0a0a;">Shipping To</h2>
               <p style="margin: 0; font-size: 14px; color: #555; line-height: 1.6;">
-                ${customer.fullName}<br>
-                ${enrichedShippingAddress.address ?? enrichedShippingAddress.street ?? ""}<br>
-                ${enrichedShippingAddress.communeNameAr ?? enrichedShippingAddress.city ?? ""}, ${enrichedShippingAddress.wilayaNameAr ?? enrichedShippingAddress.state ?? ""}<br>
-                ${enrichedShippingAddress.deliveryLabelAr ?? ""} - ${formatPrice(enrichedShippingAddress.shippingPrice ?? 0, "DZD")}
+                ${customerNameHtml}<br>
+                ${shippingAddressHtml}<br>
+                ${shippingCommuneHtml}, ${shippingWilayaHtml}<br>
+                ${deliveryLabelHtml} - ${formatPrice(enrichedShippingAddress.shippingPrice ?? 0, "DZD")}
               </p>
             </div>
           </div>
@@ -296,7 +441,7 @@ export async function POST(req: NextRequest) {
           <!-- Footer -->
           <div style="background: #f9f9f9; padding: 24px 32px; text-align: center; border-top: 1px solid #e5e5e5;">
             <p style="margin: 0; font-size: 13px; color: #888;">
-              Questions? Reply to this email or visit our <a href="${process.env.NEXT_PUBLIC_SITE_URL}/contact" style="color: #0a0a0a;">support page</a>.
+              Questions? Reply to this email or visit our <a href="${escapeHtml(process.env.NEXT_PUBLIC_SITE_URL)}/contact" style="color: #0a0a0a;">support page</a>.
             </p>
             <p style="margin: 12px 0 0; font-size: 12px; color: #bbb;">© ${new Date().getFullYear()} Luminary Store</p>
           </div>
@@ -313,7 +458,7 @@ export async function POST(req: NextRequest) {
     } = {
       enabled: Boolean(process.env.RESEND_API_KEY),
       customer: {
-        recipient: customer.email ?? null,
+        recipient: customerEmail,
         sent: false,
       },
       admin: {
@@ -323,10 +468,10 @@ export async function POST(req: NextRequest) {
     };
 
     if (process.env.RESEND_API_KEY) {
-      if (customer.email) {
+      if (customerEmail) {
         const { data, error } = await getResend().emails.send({
           from: "Luminary Store <onboarding@resend.dev>",
-          to: customer.email,
+          to: customerEmail,
           subject: `Order Confirmed — #${order.id.slice(0, 8).toUpperCase()}`,
           html: emailHtml,
         });
@@ -338,7 +483,7 @@ export async function POST(req: NextRequest) {
           emailStatus.customer.id = data?.id;
           console.info("[Resend Customer Email Sent]:", {
             orderId: order.id,
-            recipient: customer.email,
+            recipient: customerEmail,
             emailId: data?.id,
           });
         }
@@ -354,7 +499,7 @@ export async function POST(req: NextRequest) {
           return `
             <tr>
               <td style="padding: 10px 12px; border-bottom: 1px solid #e5e5e5; font-size: 14px;">
-                ${product?.name ?? "Unknown Product"}
+                ${escapeHtml(product?.name ?? "Unknown Product")}
                 ${optionText ? `<br><span style="font-size: 12px; color: #6b7280;">${optionText}</span>` : ""}
               </td>
               <td style="padding: 10px 12px; border-bottom: 1px solid #e5e5e5; font-size: 14px; text-align: center;">${item.quantity}</td>
@@ -392,15 +537,15 @@ export async function POST(req: NextRequest) {
                 <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                   <tr>
                     <td style="padding: 5px 0; color: #6b7280; width: 120px;">Full Name</td>
-                    <td style="padding: 5px 0; color: #111; font-weight: 600;">${customer.fullName}</td>
+                    <td style="padding: 5px 0; color: #111; font-weight: 600;">${customerNameHtml}</td>
                   </tr>
                   <tr>
                     <td style="padding: 5px 0; color: #6b7280;">Email</td>
-                    <td style="padding: 5px 0; color: #111;"><a href="mailto:${customer.email}" style="color: #16a34a; text-decoration: none;">${customer.email}</a></td>
+                    <td style="padding: 5px 0; color: #111;">${customerEmail ? `<a href="mailto:${customerEmailHtml}" style="color: #16a34a; text-decoration: none;">${customerEmailHtml}</a>` : '<span style="color:#9ca3af;">Not provided</span>'}</td>
                   </tr>
                   <tr>
                     <td style="padding: 5px 0; color: #6b7280;">Phone</td>
-                    <td style="padding: 5px 0; color: #111; font-weight: 600;">${customer.phone ? `<a href="tel:${customer.phone}" style="color: #16a34a; text-decoration: none;">${customer.phone}</a>` : '<span style="color:#9ca3af;">Not provided</span>'}</td>
+                    <td style="padding: 5px 0; color: #111; font-weight: 600;">${customerPhone ? `<a href="tel:${customerPhoneHtml}" style="color: #16a34a; text-decoration: none;">${customerPhoneHtml}</a>` : '<span style="color:#9ca3af;">Not provided</span>'}</td>
                   </tr>
                 </table>
               </div>
@@ -431,10 +576,10 @@ export async function POST(req: NextRequest) {
               <div style="background: #f9fafb; border-radius: 12px; padding: 20px; border-left: 4px solid #6366f1;">
                 <h2 style="margin: 0 0 12px; font-size: 15px; font-weight: 700; color: #111; text-transform: uppercase; letter-spacing: 0.05em;">📦 Shipping Address</h2>
                 <p style="margin: 0; font-size: 14px; color: #374151; line-height: 1.8;">
-                  <strong>${customer.fullName}</strong><br>
-                  ${enrichedShippingAddress.address ?? enrichedShippingAddress.street ?? ""}<br>
-                  ${enrichedShippingAddress.communeNameAr ?? enrichedShippingAddress.city ?? ""}, ${enrichedShippingAddress.wilayaNameAr ?? enrichedShippingAddress.state ?? ""}<br>
-                  ${enrichedShippingAddress.deliveryLabelAr ?? ""} - ${formatPrice(enrichedShippingAddress.shippingPrice ?? 0, "DZD")}
+                  <strong>${customerNameHtml}</strong><br>
+                  ${shippingAddressHtml}<br>
+                  ${shippingCommuneHtml}, ${shippingWilayaHtml}<br>
+                  ${deliveryLabelHtml} - ${formatPrice(enrichedShippingAddress.shippingPrice ?? 0, "DZD")}
                 </p>
               </div>
 
@@ -454,7 +599,7 @@ export async function POST(req: NextRequest) {
         const { data, error } = await getResend().emails.send({
           from: "Luminary Store <onboarding@resend.dev>",
           to: ORDER_NOTIFICATION_EMAIL,
-          subject: `🛍️ New Order #${order.id.slice(0, 8).toUpperCase()} — ${customer.fullName} (${formatPrice(total)})`,
+          subject: `🛍️ New Order #${order.id.slice(0, 8).toUpperCase()} — ${customerName} (${formatPrice(total)})`,
           html: adminEmailHtml,
         });
         if (error) {
@@ -477,7 +622,10 @@ export async function POST(req: NextRequest) {
       emailStatus.admin.skippedReason = "RESEND_API_KEY is not configured";
     }
 
-    return NextResponse.json({ orderId: order.id, emailStatus }, { status: 201 });
+    return NextResponse.json(
+      { orderId: order.id, emailStatus: serializeEmailStatus(emailStatus) },
+      { status: 201 }
+    );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Internal server error";
     console.error("[orders/POST]", error);
