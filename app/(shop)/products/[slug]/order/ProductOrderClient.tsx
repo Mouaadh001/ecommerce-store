@@ -183,7 +183,16 @@ export default function ProductOrderClient({
       const json = await response.json();
       if (!response.ok) throw new Error(json.error ?? "تعذر إرسال الطلب");
       setOrderId(json.orderId);
-      toast.success("تم إرسال الطلب بنجاح");
+      const adminEmail = json.emailStatus?.admin;
+      if (adminEmail && !adminEmail.sent) {
+        toast.error(
+          `تم حفظ الطلب لكن لم يتم إرسال الإيميل: ${
+            adminEmail.error ?? adminEmail.skippedReason ?? "سبب غير معروف"
+          }`
+        );
+      } else {
+        toast.success("تم إرسال الطلب بنجاح");
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "حدث خطأ غير متوقع");
     } finally {

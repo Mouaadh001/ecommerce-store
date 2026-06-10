@@ -22,6 +22,14 @@ type SelectedOptions = {
   size?: string | null;
 };
 
+type EmailSendStatus = {
+  recipient: string | null;
+  sent: boolean;
+  id?: string;
+  error?: string;
+  skippedReason?: string;
+};
+
 function formatSelectedOptions(options?: SelectedOptions | null) {
   const parts = [
     options?.color ? `Color: ${options.color}` : null,
@@ -29,6 +37,17 @@ function formatSelectedOptions(options?: SelectedOptions | null) {
   ].filter(Boolean);
 
   return parts.join(" | ");
+}
+
+function formatEmailError(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return "Unknown email error";
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -256,15 +275,44 @@ export async function POST(req: NextRequest) {
     `;
 
     // Send confirmation email to customer
+    const emailStatus: {
+      enabled: boolean;
+      customer: EmailSendStatus;
+      admin: EmailSendStatus;
+    } = {
+      enabled: Boolean(process.env.RESEND_API_KEY),
+      customer: {
+        recipient: customer.email ?? null,
+        sent: false,
+      },
+      admin: {
+        recipient: ORDER_NOTIFICATION_EMAIL,
+        sent: false,
+      },
+    };
+
     if (process.env.RESEND_API_KEY) {
       if (customer.email) {
-        const { error } = await getResend().emails.send({
+        const { data, error } = await getResend().emails.send({
           from: "Luminary Store <onboarding@resend.dev>",
           to: customer.email,
           subject: `Order Confirmed — #${order.id.slice(0, 8).toUpperCase()}`,
           html: emailHtml,
         });
-        if (error) console.error("[Resend Customer Email Error]:", error);
+        if (error) {
+          emailStatus.customer.error = formatEmailError(error);
+          console.error("[Resend Customer Email Error]:", error);
+        } else {
+          emailStatus.customer.sent = true;
+          emailStatus.customer.id = data?.id;
+          console.info("[Resend Customer Email Sent]:", {
+            orderId: order.id,
+            recipient: customer.email,
+            emailId: data?.id,
+          });
+        }
+      } else {
+        emailStatus.customer.skippedReason = "Customer email was not provided";
       }
 
       // Build admin notification email with ALL order details
@@ -372,17 +420,33 @@ export async function POST(req: NextRequest) {
 
       // Send admin notification
       if (ORDER_NOTIFICATION_EMAIL) {
-        const { error } = await getResend().emails.send({
+        const { data, error } = await getResend().emails.send({
           from: "Luminary Store <onboarding@resend.dev>",
           to: ORDER_NOTIFICATION_EMAIL,
           subject: `🛍️ New Order #${order.id.slice(0, 8).toUpperCase()} — ${customer.fullName} (${formatPrice(total)})`,
           html: adminEmailHtml,
         });
-        if (error) console.error("[Resend Admin Email Error]:", error);
+        if (error) {
+          emailStatus.admin.error = formatEmailError(error);
+          console.error("[Resend Admin Email Error]:", error);
+        } else {
+          emailStatus.admin.sent = true;
+          emailStatus.admin.id = data?.id;
+          console.info("[Resend Admin Email Sent]:", {
+            orderId: order.id,
+            recipient: ORDER_NOTIFICATION_EMAIL,
+            emailId: data?.id,
+          });
+        }
+      } else {
+        emailStatus.admin.skippedReason = "ORDER_NOTIFICATION_EMAIL is not configured";
       }
+    } else {
+      emailStatus.customer.skippedReason = "RESEND_API_KEY is not configured";
+      emailStatus.admin.skippedReason = "RESEND_API_KEY is not configured";
     }
 
-    return NextResponse.json({ orderId: order.id }, { status: 201 });
+    return NextResponse.json({ orderId: order.id, emailStatus }, { status: 201 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Internal server error";
     console.error("[orders/POST]", error);

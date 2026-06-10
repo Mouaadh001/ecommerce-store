@@ -92,7 +92,16 @@ export default function CheckoutPage() {
       if (!res.ok) throw new Error(json.error ?? "Order failed");
 
       clearCart();
-      toast.success("Order placed! Check your email for confirmation.");
+      const adminEmail = json.emailStatus?.admin;
+      if (adminEmail && !adminEmail.sent) {
+        toast.error(
+          `Order saved, but the admin email was not sent: ${
+            adminEmail.error ?? adminEmail.skippedReason ?? "unknown reason"
+          }`
+        );
+      } else {
+        toast.success("Order placed! Check your email for confirmation.");
+      }
       router.push(`/orders?success=true`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong";
