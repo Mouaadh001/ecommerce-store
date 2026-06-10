@@ -88,7 +88,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
             )}
           </div>
 
-          {(colorVariants.length > 0 || product.sizes?.length > 0) && (
+          {(colorVariants.length > 0 || (product.sizes?.length ?? 0) > 0) && (
             <div className="flex flex-wrap gap-1.5 mt-3">
               {colorVariants.slice(0, 4).map((color) => (
                 <span key={color.label} className="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
