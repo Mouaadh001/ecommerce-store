@@ -42,14 +42,17 @@ export default async function AdminDashboard() {
         {stats.map(({ label, value, icon: Icon, color, bg }) => (
           <div
             key={label}
-            className="rounded-lg border border-white/10 bg-white/[0.045] p-5 shadow-2xl shadow-black/10"
+            className="group rounded-lg border border-white/10 bg-white/[0.045] p-5 shadow-2xl shadow-black/10 transition duration-200 hover:-translate-y-0.5 hover:border-emerald-400/25 hover:bg-white/[0.065] hover:shadow-black/25"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm text-zinc-400">{label}</p>
                 <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
               </div>
-              <div style={{ background: bg, color }} className="rounded-lg p-3">
+              <div
+                style={{ background: bg, color, boxShadow: `0 14px 34px ${bg}` }}
+                className="rounded-lg p-3 transition duration-200 group-hover:scale-105"
+              >
               <Icon size={22} />
               </div>
             </div>
@@ -58,11 +61,11 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Link href="/admin/products/new" className="group flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.04] p-5 text-sm font-semibold text-white transition hover:border-emerald-400/40 hover:bg-emerald-400/10">
+        <Link href="/admin/products/new" className="group flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.04] p-5 text-sm font-semibold text-white shadow-xl shadow-black/10 transition duration-200 hover:-translate-y-0.5 hover:border-emerald-400/40 hover:bg-emerald-400/10 hover:shadow-black/25">
           <span>+ Add New Product</span>
           <ArrowRight size={18} className="transition group-hover:translate-x-1" />
         </Link>
-        <Link href="/admin/orders" className="group flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.04] p-5 text-sm font-semibold text-white transition hover:border-cyan-300/40 hover:bg-cyan-300/10">
+        <Link href="/admin/orders" className="group flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.04] p-5 text-sm font-semibold text-white shadow-xl shadow-black/10 transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300/40 hover:bg-cyan-300/10 hover:shadow-black/25">
           <span>View All Orders</span>
           <ArrowRight size={18} className="transition group-hover:translate-x-1" />
         </Link>
