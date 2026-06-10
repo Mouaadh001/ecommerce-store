@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getResend } from "@/lib/resend";
 import { formatPrice, formatDate } from "@/lib/utils";
 import { ADMIN_EMAIL } from "@/lib/admin";
@@ -33,10 +33,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { customer, shippingAddress, items } = body;
 
-    const supabase = await createClient();
+    const authClient = await createClient();
+    const supabase = await createServiceClient();
 
     // Get authenticated user (optional — guests allowed)
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await authClient.auth.getUser();
 
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: "No order items provided" }, { status: 400 });

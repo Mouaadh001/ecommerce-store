@@ -35,9 +35,17 @@ CREATE POLICY "orders_admin_update" ON orders FOR UPDATE
   USING ((auth.jwt()->>'email') = 'mikacheabdou@gmail.com')
   WITH CHECK ((auth.jwt()->>'email') = 'mikacheabdou@gmail.com');
 
+DROP POLICY IF EXISTS "orders_public_insert" ON orders;
+CREATE POLICY "orders_public_insert" ON orders FOR INSERT
+  WITH CHECK (true);
+
 DROP POLICY IF EXISTS "order_items_admin_select" ON order_items;
 CREATE POLICY "order_items_admin_select" ON order_items FOR SELECT
   USING ((auth.jwt()->>'email') = 'mikacheabdou@gmail.com');
+
+DROP POLICY IF EXISTS "order_items_public_insert" ON order_items;
+CREATE POLICY "order_items_public_insert" ON order_items FOR INSERT
+  WITH CHECK (true);
 
 DROP POLICY IF EXISTS "shipping_prices_public_read" ON shipping_prices;
 CREATE POLICY "shipping_prices_public_read" ON shipping_prices FOR SELECT USING (true);
