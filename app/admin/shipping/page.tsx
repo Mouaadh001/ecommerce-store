@@ -12,12 +12,13 @@ export default async function AdminShippingPage() {
   const prices = mergeShippingPrices(shippingRows as Partial<ShippingPrice>[] | null);
 
   return (
-    <div>
-      <div style={{ marginBottom: "28px" }}>
-        <h1 style={{ fontSize: "24px", fontWeight: 700, color: "#fff", margin: 0 }}>
+    <div className="space-y-6">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-400">Delivery pricing</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">
           أسعار الشحن
         </h1>
-        <p style={{ color: "#666", marginTop: "4px", fontSize: "14px" }}>
+        <p className="mt-2 text-sm text-zinc-400">
           حدد أسعار التوصيل للمنزل ولكل مكتب شحن متاح.
         </p>
       </div>

@@ -48,9 +48,9 @@ export default function AdminOrdersClient({ orders }: { orders: Order[] }) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
       {orders.length === 0 && (
-        <div style={{ background: "#111118", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "12px", padding: "48px", textAlign: "center", color: "#555" }}>
+        <div style={{ background: "rgba(255,255,255,0.045)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", padding: "48px", textAlign: "center", color: "#71717a" }}>
           No orders yet.
         </div>
       )}
@@ -60,21 +60,21 @@ export default function AdminOrdersClient({ orders }: { orders: Order[] }) {
         const isOpen = expanded === order.id;
 
         return (
-          <div key={order.id} style={{ background: "#111118", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "12px", overflow: "hidden" }}>
+          <div key={order.id} style={{ background: "rgba(255,255,255,0.045)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,0.12)" }}>
             {/* Header row */}
             <div
               onClick={() => setExpanded(isOpen ? null : order.id)}
-              style={{ display: "grid", gridTemplateColumns: "2fr 2fr 1fr 1.5fr auto", alignItems: "center", gap: "16px", padding: "16px 20px", cursor: "pointer" }}
+              style={{ display: "grid", gridTemplateColumns: "minmax(180px,2fr) minmax(150px,1.6fr) minmax(120px,1fr) minmax(130px,1.2fr) auto", alignItems: "center", gap: "16px", padding: "17px 20px", cursor: "pointer" }}
             >
               <div>
-                <p style={{ margin: 0, color: "#e1e1e8", fontWeight: 600, fontSize: "14px" }}>{order.customer_name ?? "Guest"}</p>
-                <p style={{ margin: "2px 0 0", color: "#555", fontSize: "12px" }}>{order.customer_email ?? "—"}</p>
+                <p style={{ margin: 0, color: "#f4f4f5", fontWeight: 650, fontSize: "14px" }}>{order.customer_name ?? "Guest"}</p>
+                <p style={{ margin: "4px 0 0", color: "#71717a", fontSize: "12px" }}>{order.customer_email ?? "—"}</p>
               </div>
               <div>
-                <p style={{ margin: 0, color: "#888", fontSize: "12px", fontFamily: "monospace" }}>#{order.id.slice(0, 8).toUpperCase()}</p>
-                <p style={{ margin: "2px 0 0", color: "#555", fontSize: "12px" }}>{new Date(order.created_at).toLocaleString()}</p>
+                <p style={{ margin: 0, color: "#a1a1aa", fontSize: "12px", fontFamily: "monospace" }}>#{order.id.slice(0, 8).toUpperCase()}</p>
+                <p style={{ margin: "4px 0 0", color: "#71717a", fontSize: "12px" }}>{new Date(order.created_at).toLocaleString()}</p>
               </div>
-              <div style={{ color: "#10b981", fontWeight: 700, fontSize: "15px" }}>
+              <div style={{ color: "#34d399", fontWeight: 750, fontSize: "15px" }}>
                 {formatPrice(Number(order.total), "DZD")}
               </div>
               <div onClick={(e) => e.stopPropagation()}>
@@ -84,7 +84,7 @@ export default function AdminOrdersClient({ orders }: { orders: Order[] }) {
                   onChange={(e) => updateStatus(order.id, e.target.value as OrderStatus)}
                   style={{
                     background: s.bg, color: s.color, border: `1px solid ${s.color}33`,
-                    borderRadius: "20px", padding: "4px 10px", fontSize: "12px", fontWeight: 600,
+                    borderRadius: "999px", padding: "6px 12px", fontSize: "12px", fontWeight: 700,
                     cursor: "pointer", outline: "none", appearance: "none", textTransform: "capitalize",
                     opacity: updating === order.id ? 0.5 : 1,
                   }}
@@ -94,22 +94,22 @@ export default function AdminOrdersClient({ orders }: { orders: Order[] }) {
                   ))}
                 </select>
               </div>
-              <div style={{ color: "#555", fontSize: "18px", transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▾</div>
+              <div style={{ color: "#71717a", fontSize: "18px", transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▾</div>
             </div>
 
             {/* Expanded details */}
             {isOpen && (
-              <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "20px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+              <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", padding: "20px", display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: "24px", background: "rgba(0,0,0,0.18)" }}>
                 {/* Items */}
                 <div>
-                  <p style={{ margin: "0 0 12px", fontSize: "12px", color: "#555", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>Items</p>
+                  <p style={{ margin: "0 0 12px", fontSize: "12px", color: "#71717a", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>Items</p>
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                     {order.order_items?.map((item, i) => {
                       const options = formatSelectedOptions(item.selected_options);
 
                       return (
-                        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: "12px", fontSize: "13px" }}>
-                          <span style={{ color: "#e1e1e8" }}>
+                        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: "12px", fontSize: "13px", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                          <span style={{ color: "#e4e4e7" }}>
                             {item.product?.name ?? "Unknown"} × {item.quantity}
                             {options && (
                               <span style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px", color: "#777", fontSize: "12px" }}>
@@ -129,7 +129,7 @@ export default function AdminOrdersClient({ orders }: { orders: Order[] }) {
                               </span>
                             )}
                           </span>
-                          <span style={{ color: "#10b981", whiteSpace: "nowrap" }}>{formatPrice(item.price_at_purchase * item.quantity, "DZD")}</span>
+                          <span style={{ color: "#34d399", whiteSpace: "nowrap", fontWeight: 650 }}>{formatPrice(item.price_at_purchase * item.quantity, "DZD")}</span>
                         </div>
                       );
                     })}
@@ -137,8 +137,8 @@ export default function AdminOrdersClient({ orders }: { orders: Order[] }) {
                 </div>
                 {/* Shipping */}
                 <div>
-                  <p style={{ margin: "0 0 12px", fontSize: "12px", color: "#555", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>Shipping Address</p>
-                  <div style={{ fontSize: "13px", color: "#888", lineHeight: "1.7" }}>
+                  <p style={{ margin: "0 0 12px", fontSize: "12px", color: "#71717a", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>Shipping Address</p>
+                  <div style={{ fontSize: "13px", color: "#a1a1aa", lineHeight: "1.8" }}>
                     {order.shipping_address?.customerPhone && <p style={{ margin: 0 }}>Phone: {order.shipping_address.customerPhone}</p>}
                     {(order.shipping_address?.address || order.shipping_address?.street) && <p style={{ margin: 0 }}>{order.shipping_address.address ?? order.shipping_address.street}</p>}
                     {(order.shipping_address?.communeNameAr || order.shipping_address?.city) && (

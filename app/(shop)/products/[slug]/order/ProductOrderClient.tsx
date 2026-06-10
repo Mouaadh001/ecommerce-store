@@ -484,7 +484,12 @@ export default function ProductOrderClient({
 
           <SummaryRow label="المجموع" value={formatPrice(total, "DZD")} strong />
 
-          <Button type="submit" size="lg" className="w-full" loading={loading}>
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full bg-emerald-500 text-base font-bold text-emerald-950 shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 focus-visible:ring-emerald-400"
+            loading={loading}
+          >
             <Lock className="w-4 h-4" />
             {loading ? "جاري إرسال الطلب..." : "اطلب الآن"}
           </Button>

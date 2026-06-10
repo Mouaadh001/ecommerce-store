@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Package, ShoppingBag, DollarSign, ArrowRight } from "lucide-react";
+import { Package, ShoppingBag, DollarSign, ArrowRight, PlusCircle } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 
 export default async function AdminDashboard() {
@@ -22,72 +22,86 @@ export default async function AdminDashboard() {
   ];
 
   return (
-    <div>
-      <div style={{ marginBottom: "32px" }}>
-        <h1 style={{ fontSize: "24px", fontWeight: 700, color: "#fff", margin: 0 }}>Dashboard</h1>
-        <p style={{ color: "#666", marginTop: "4px", fontSize: "14px" }}>Welcome back to your store admin</p>
+    <div className="space-y-7">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-400">Store control</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Dashboard</h1>
+          <p className="mt-2 text-sm text-zinc-400">Monitor orders, inventory, and recent revenue.</p>
+        </div>
+        <Link
+          href="/admin/products/new"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 text-sm font-semibold text-emerald-950 shadow-lg shadow-emerald-500/15 transition hover:bg-emerald-400"
+        >
+          <PlusCircle size={16} />
+          Add Product
+        </Link>
       </div>
 
-      {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "32px" }}>
+      <div className="grid gap-4 md:grid-cols-3">
         {stats.map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} style={{ background: "#111118", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "12px", padding: "24px", display: "flex", alignItems: "center", gap: "16px" }}>
-            <div style={{ background: bg, borderRadius: "10px", padding: "12px", color }}>
+          <div
+            key={label}
+            className="rounded-lg border border-white/10 bg-white/[0.045] p-5 shadow-2xl shadow-black/10"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm text-zinc-400">{label}</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
+              </div>
+              <div style={{ background: bg, color }} className="rounded-lg p-3">
               <Icon size={22} />
-            </div>
-            <div>
-              <p style={{ margin: 0, fontSize: "13px", color: "#666" }}>{label}</p>
-              <p style={{ margin: "4px 0 0", fontSize: "22px", fontWeight: 700, color: "#fff" }}>{value}</p>
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Quick Links */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "32px" }}>
-        <Link href="/admin/products/new" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.2)", borderRadius: "12px", padding: "20px 24px", textDecoration: "none", color: "#a78bfa", fontWeight: 600, fontSize: "15px", transition: "all 0.15s" }}>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Link href="/admin/products/new" className="group flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.04] p-5 text-sm font-semibold text-white transition hover:border-emerald-400/40 hover:bg-emerald-400/10">
           <span>+ Add New Product</span>
-          <ArrowRight size={18} />
+          <ArrowRight size={18} className="transition group-hover:translate-x-1" />
         </Link>
-        <Link href="/admin/orders" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(6,182,212,0.1)", border: "1px solid rgba(6,182,212,0.2)", borderRadius: "12px", padding: "20px 24px", textDecoration: "none", color: "#67e8f9", fontWeight: 600, fontSize: "15px", transition: "all 0.15s" }}>
+        <Link href="/admin/orders" className="group flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.04] p-5 text-sm font-semibold text-white transition hover:border-cyan-300/40 hover:bg-cyan-300/10">
           <span>View All Orders</span>
-          <ArrowRight size={18} />
+          <ArrowRight size={18} className="transition group-hover:translate-x-1" />
         </Link>
       </div>
 
-      {/* Recent Orders */}
-      <div style={{ background: "#111118", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "12px", padding: "24px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-          <h2 style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "#fff" }}>Recent Orders</h2>
-          <Link href="/admin/orders" style={{ fontSize: "13px", color: "#8b5cf6", textDecoration: "none" }}>View all →</Link>
+      <div className="overflow-hidden rounded-lg border border-white/10 bg-white/[0.045]">
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+          <h2 className="text-base font-semibold text-white">Recent Orders</h2>
+          <Link href="/admin/orders" className="text-sm font-medium text-emerald-400 hover:text-emerald-300">View all</Link>
         </div>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[720px] border-collapse text-sm">
           <thead>
-            <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <tr className="border-b border-white/10 bg-black/10">
               {["Customer", "Email", "Total", "Status", "Date"].map((h) => (
-                <th key={h} style={{ textAlign: "left", padding: "8px 0", color: "#555", fontWeight: 600, textTransform: "uppercase", fontSize: "11px", letterSpacing: "0.05em" }}>{h}</th>
+                <th key={h} className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {orders?.map((order, i) => (
-              <tr key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
-                <td style={{ padding: "12px 0", color: "#e1e1e8" }}>{order.customer_name ?? "Guest"}</td>
-                <td style={{ padding: "12px 0", color: "#666" }}>{order.customer_email ?? "—"}</td>
-                <td style={{ padding: "12px 0", color: "#10b981", fontWeight: 600 }}>{formatPrice(Number(order.total), "DZD")}</td>
-                <td style={{ padding: "12px 0" }}>
-                  <span style={{ background: order.status === "pending" ? "rgba(245,158,11,0.15)" : "rgba(16,185,129,0.15)", color: order.status === "pending" ? "#fbbf24" : "#34d399", padding: "2px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: 600, textTransform: "capitalize" }}>
+              <tr key={i} className="border-b border-white/[0.06] last:border-0">
+                <td className="px-5 py-4 font-medium text-zinc-100">{order.customer_name ?? "Guest"}</td>
+                <td className="px-5 py-4 text-zinc-500">{order.customer_email ?? "—"}</td>
+                <td className="px-5 py-4 font-semibold text-emerald-400">{formatPrice(Number(order.total), "DZD")}</td>
+                <td className="px-5 py-4">
+                  <span className="rounded-full px-2.5 py-1 text-xs font-semibold capitalize" style={{ background: order.status === "pending" ? "rgba(245,158,11,0.15)" : "rgba(16,185,129,0.15)", color: order.status === "pending" ? "#fbbf24" : "#34d399" }}>
                     {order.status}
                   </span>
                 </td>
-                <td style={{ padding: "12px 0", color: "#555" }}>{new Date(order.created_at).toLocaleDateString()}</td>
+                <td className="px-5 py-4 text-zinc-500">{new Date(order.created_at).toLocaleDateString()}</td>
               </tr>
             ))}
             {(!orders || orders.length === 0) && (
-              <tr><td colSpan={5} style={{ padding: "24px 0", textAlign: "center", color: "#555" }}>No orders yet</td></tr>
+              <tr><td colSpan={5} className="px-5 py-10 text-center text-zinc-500">No orders yet</td></tr>
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

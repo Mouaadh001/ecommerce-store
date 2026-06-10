@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Save, ChevronDown, ChevronRight, MapPin } from "lucide-react";
+import { Save, ChevronDown, ChevronRight, MapPin, Home, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import type { ShippingPrice, StopDeskPrice } from "@/lib/shipping";
@@ -130,7 +130,8 @@ export default function AdminShippingClient({ prices, stopDeskPrices }: Props) {
               gap: "6px",
             }}
           >
-            {tab === "home_office" ? "🏠 المنزل" : "🏢 المكاتب"}
+            {tab === "home_office" ? <Home size={14} /> : <Building2 size={14} />}
+            {tab === "home_office" ? "المنزل" : "المكاتب"}
             {tab === "home_office" && changedHO > 0 && (
               <span style={{ background: "#f59e0b", color: "#000", borderRadius: "999px", fontSize: "10px", padding: "1px 6px", fontWeight: 700 }}>
                 {changedHO}
@@ -175,7 +176,7 @@ export default function AdminShippingClient({ prices, stopDeskPrices }: Props) {
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "620px" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                {["الرمز", "الولاية", "بالعربية", "🏠 المنزل (دج)"].map((h) => (
+                {["الرمز", "الولاية", "بالعربية", "المنزل (دج)"].map((h) => (
                   <th key={h} style={{ textAlign: "left", padding: "14px 16px", color: "#666", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                     {h}
                   </th>

@@ -10,10 +10,11 @@ export default async function AdminOrdersPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div>
-      <div style={{ marginBottom: "28px" }}>
-        <h1 style={{ fontSize: "24px", fontWeight: 700, color: "#fff", margin: 0 }}>Orders</h1>
-        <p style={{ color: "#666", marginTop: "4px", fontSize: "14px" }}>{orders?.length ?? 0} orders total</p>
+    <div className="space-y-6">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-400">Fulfillment</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Orders</h1>
+        <p className="mt-2 text-sm text-zinc-400">{orders?.length ?? 0} orders total</p>
       </div>
       <AdminOrdersClient orders={orders ?? []} />
     </div>

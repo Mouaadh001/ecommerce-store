@@ -11,15 +11,16 @@ export default async function AdminProductsPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "28px" }}>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 style={{ fontSize: "24px", fontWeight: 700, color: "#fff", margin: 0 }}>Products</h1>
-          <p style={{ color: "#666", marginTop: "4px", fontSize: "14px" }}>{products?.length ?? 0} products total</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-400">Catalog</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Products</h1>
+          <p className="mt-2 text-sm text-zinc-400">{products?.length ?? 0} products total</p>
         </div>
         <Link
           href="/admin/products/new"
-          style={{ display: "flex", alignItems: "center", gap: "8px", background: "#8b5cf6", color: "#fff", textDecoration: "none", padding: "10px 20px", borderRadius: "8px", fontSize: "14px", fontWeight: 600, transition: "opacity 0.15s" }}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 text-sm font-semibold text-emerald-950 shadow-lg shadow-emerald-500/15 transition hover:bg-emerald-400"
         >
           <PlusCircle size={16} />
           Add Product

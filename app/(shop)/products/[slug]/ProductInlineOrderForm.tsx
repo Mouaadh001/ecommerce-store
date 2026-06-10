@@ -363,7 +363,7 @@ export function ProductInlineOrderForm({
       <Button
         type="submit"
         size="lg"
-        className="w-full"
+        className="w-full bg-emerald-500 text-base font-bold text-emerald-950 shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 focus-visible:ring-emerald-400"
         loading={loading}
         disabled={product.stock === 0}
       >

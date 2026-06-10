@@ -35,8 +35,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="admin-shell">
       <aside className="admin-sidebar">
         <div className="admin-logo">
-          <span className="admin-logo-icon">⚡</span>
-          <span>Admin Panel</span>
+          <span className="admin-logo-icon"><Package size={18} /></span>
+          <span>Luminary Admin</span>
         </div>
 
         <nav className="admin-nav">
@@ -46,7 +46,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link
                 key={href}
                 href={href}
-                className={`admin-nav-item${isActive && (exact ? pathname === href : true) ? " active" : ""}`}
+                className={`admin-nav-item${isActive ? " active" : ""}`}
               >
                 <Icon size={18} />
                 {label}
@@ -69,15 +69,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         .admin-shell {
           display: flex;
           min-height: 100vh;
-          background: #0a0a0f;
+          background:
+            radial-gradient(circle at top left, rgba(16,185,129,0.09), transparent 34%),
+            linear-gradient(135deg, #09090d 0%, #0d1014 48%, #08090b 100%);
           color: #e1e1e8;
           font-family: 'Inter', sans-serif;
         }
         .admin-sidebar {
-          width: 240px;
+          width: 252px;
           min-height: 100vh;
-          background: #111118;
-          border-right: 1px solid rgba(255,255,255,0.06);
+          background: rgba(14,15,20,0.92);
+          border-right: 1px solid rgba(255,255,255,0.08);
+          box-shadow: 10px 0 40px rgba(0,0,0,0.22);
           display: flex;
           flex-direction: column;
           padding: 24px 16px;
@@ -92,12 +95,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           font-size: 17px;
           font-weight: 700;
           color: #fff;
-          padding: 0 8px 28px;
-          border-bottom: 1px solid rgba(255,255,255,0.06);
+          padding: 0 8px 24px;
+          border-bottom: 1px solid rgba(255,255,255,0.08);
           margin-bottom: 20px;
         }
         .admin-logo-icon {
-          font-size: 22px;
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: #10b981;
+          color: #04130d;
+          box-shadow: 0 12px 28px rgba(16,185,129,0.24);
         }
         .admin-nav {
           display: flex;
@@ -109,26 +120,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           display: flex;
           align-items: center;
           gap: 10px;
-          padding: 10px 12px;
+          padding: 11px 12px;
           border-radius: 8px;
-          color: #888;
+          color: #9ca3af;
           text-decoration: none;
           font-size: 14px;
           font-weight: 500;
-          transition: all 0.15s;
+          transition: background 0.15s, color 0.15s, transform 0.15s;
         }
         .admin-nav-item:hover {
-          background: rgba(255,255,255,0.05);
-          color: #e1e1e8;
+          background: rgba(255,255,255,0.06);
+          color: #f8fafc;
+          transform: translateX(2px);
         }
         .admin-nav-item.active {
-          background: rgba(139, 92, 246, 0.15);
-          color: #a78bfa;
+          background: rgba(16,185,129,0.14);
+          color: #6ee7b7;
+          box-shadow: inset 3px 0 0 #10b981;
         }
         .admin-main {
           flex: 1;
           padding: 32px;
           overflow-y: auto;
+          max-width: 1440px;
         }
         .admin-logout {
           display: flex;
@@ -148,6 +162,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         .admin-logout:hover {
           background: rgba(239, 68, 68, 0.1);
           color: #f87171;
+        }
+        @media (max-width: 860px) {
+          .admin-shell {
+            flex-direction: column;
+          }
+          .admin-sidebar {
+            width: 100%;
+            min-height: auto;
+            height: auto;
+            position: relative;
+            padding: 16px;
+          }
+          .admin-nav {
+            flex-direction: row;
+            overflow-x: auto;
+            padding-bottom: 4px;
+          }
+          .admin-nav-item {
+            flex-shrink: 0;
+          }
+          .admin-main {
+            padding: 20px 16px 32px;
+          }
         }
       `}</style>
     </div>
