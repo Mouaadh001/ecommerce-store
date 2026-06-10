@@ -43,18 +43,15 @@ export default function AdminShippingClient({ prices, stopDeskPrices }: Props) {
   const [activeTab, setActiveTab] = useState<"home_office" | "stop_desk">("home_office");
   const [expandedWilaya, setExpandedWilaya] = useState<string | null>(null);
 
-  // Count unsaved changes for home/office
+  // Count unsaved changes for home delivery
   const changedHO = useMemo(() => {
     return rows.filter((row, index) => {
       const original = prices[index];
-      return (
-        Number(row.home_price) !== Number(original?.home_price ?? 0) ||
-        Number(row.office_price) !== Number(original?.office_price ?? 0)
-      );
+      return Number(row.home_price) !== Number(original?.home_price ?? 0);
     }).length;
   }, [prices, rows]);
 
-  // Count unsaved changes for stop-desk
+  // Count unsaved changes for office pickup
   const changedSD = useMemo(() => {
     const origMap = new Map(stopDeskPrices.map((r) => [`${r.wilaya_code}::${r.commune_key}`, r.price]));
     return sdRows.filter((r) => {
@@ -63,11 +60,11 @@ export default function AdminShippingClient({ prices, stopDeskPrices }: Props) {
     }).length;
   }, [stopDeskPrices, sdRows]);
 
-  const updateHO = (wilayaCode: string, field: "home_price" | "office_price", value: string) => {
+  const updateHome = (wilayaCode: string, value: string) => {
     setRows((cur) =>
       cur.map((row) =>
         row.wilaya_code === wilayaCode
-          ? { ...row, [field]: value === "" ? 0 : Number(value) }
+          ? { ...row, home_price: value === "" ? 0 : Number(value) }
           : row
       )
     );
@@ -102,10 +99,11 @@ export default function AdminShippingClient({ prices, stopDeskPrices }: Props) {
       .upsert(sdRows, { onConflict: "wilaya_code,commune_key" });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("تم حفظ أسعار نقاط الاستلام");
+    toast.success("تم حفظ أسعار المكاتب");
   };
 
   const totalChanged = changedHO + changedSD;
+  const activeChanged = activeTab === "home_office" ? changedHO : changedSD;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -132,7 +130,7 @@ export default function AdminShippingClient({ prices, stopDeskPrices }: Props) {
               gap: "6px",
             }}
           >
-            {tab === "home_office" ? "🏠 المنزل / المكتب" : "📦 نقاط الاستلام"}
+            {tab === "home_office" ? "🏠 المنزل" : "🏢 المكاتب"}
             {tab === "home_office" && changedHO > 0 && (
               <span style={{ background: "#f59e0b", color: "#000", borderRadius: "999px", fontSize: "10px", padding: "1px 6px", fontWeight: 700 }}>
                 {changedHO}
@@ -152,17 +150,17 @@ export default function AdminShippingClient({ prices, stopDeskPrices }: Props) {
         <p style={{ margin: 0, color: "#777", fontSize: "13px" }}>
           {activeTab === "home_office"
             ? `${rows.length} وَلَوية · ${changedHO} تغيير غير محفوظ`
-            : `${STOP_DESK_DATA.reduce((s, w) => s + w.communes.length, 0)} نقطة استلام · ${changedSD} تغيير غير محفوظ`}
+            : `${STOP_DESK_DATA.reduce((s, w) => s + w.communes.length, 0)} مكتب · ${changedSD} تغيير غير محفوظ`}
         </p>
         <button
           onClick={activeTab === "home_office" ? saveHO : saveSD}
-          disabled={saving || (activeTab === "home_office" ? changedHO : changedSD) === 0}
+          disabled={saving || activeChanged === 0}
           style={{
             display: "inline-flex", alignItems: "center", gap: "8px",
             padding: "10px 18px", borderRadius: "8px", border: "none",
             background: totalChanged > 0 ? "#10b981" : "#1e1e2a",
             color: totalChanged > 0 ? "#04130d" : "#555",
-            fontWeight: 700, cursor: saving || totalChanged === 0 ? "not-allowed" : "pointer",
+            fontWeight: 700, cursor: saving || activeChanged === 0 ? "not-allowed" : "pointer",
             opacity: saving ? 0.65 : 1, transition: "all 0.2s",
           }}
         >
@@ -171,13 +169,13 @@ export default function AdminShippingClient({ prices, stopDeskPrices }: Props) {
         </button>
       </div>
 
-      {/* ── Tab: Home / Office ── */}
+      {/* ── Tab: Home ── */}
       {activeTab === "home_office" && (
         <div style={{ background: "#111118", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "12px", overflow: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "720px" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "620px" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                {["الرمز", "الولاية", "بالعربية", "🏠 المنزل (دج)", "🏢 المكتب (دج)"].map((h) => (
+                {["الرمز", "الولاية", "بالعربية", "🏠 المنزل (دج)"].map((h) => (
                   <th key={h} style={{ textAlign: "left", padding: "14px 16px", color: "#666", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                     {h}
                   </th>
@@ -193,10 +191,7 @@ export default function AdminShippingClient({ prices, stopDeskPrices }: Props) {
                   <td style={{ padding: "12px 16px", color: "#e1e1e8", fontWeight: 600 }}>{row.wilaya_name_fr}</td>
                   <td style={{ padding: "12px 16px", color: "#e1e1e8", direction: "rtl" }}>{row.wilaya_name_ar}</td>
                   <td style={{ padding: "12px 16px" }}>
-                    <PriceInput value={row.home_price} onChange={(v) => updateHO(row.wilaya_code, "home_price", v)} />
-                  </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <PriceInput value={row.office_price} onChange={(v) => updateHO(row.wilaya_code, "office_price", v)} />
+                    <PriceInput value={row.home_price} onChange={(v) => updateHome(row.wilaya_code, v)} />
                   </td>
                 </tr>
               ))}
@@ -205,7 +200,7 @@ export default function AdminShippingClient({ prices, stopDeskPrices }: Props) {
         </div>
       )}
 
-      {/* ── Tab: Stop-Desk ── */}
+      {/* ── Tab: Offices ── */}
       {activeTab === "stop_desk" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {STOP_DESK_DATA.map((wilaya) => {
@@ -238,7 +233,7 @@ export default function AdminShippingClient({ prices, stopDeskPrices }: Props) {
                     {wilayaRow?.wilaya_name_ar ?? ""}
                   </span>
                   <span style={{ color: "#555", fontSize: "11px", background: "rgba(16,185,129,0.1)", padding: "2px 8px", borderRadius: "999px", whiteSpace: "nowrap" }}>
-                    {wilaya.communes.length} نقطة
+                    {wilaya.communes.length} مكتب
                   </span>
                   {isOpen
                     ? <ChevronDown size={15} color="#666" />

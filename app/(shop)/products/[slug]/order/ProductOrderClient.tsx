@@ -26,7 +26,10 @@ import {
   type ShippingPrice,
   type StopDeskPrice,
 } from "@/lib/shipping";
-import { getStopDeskCommunes, wilayaHasStopDesk } from "@/lib/stop-desks";
+import {
+  getStopDeskCommunes as getOfficeCommunes,
+  wilayaHasStopDesk as wilayaHasOffice,
+} from "@/lib/stop-desks";
 import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -85,23 +88,22 @@ export default function ProductOrderClient({
   const selectedColorVariant = colors.find((c) => c.label === selectedColor);
   const image = selectedColorVariant?.image_url || product.images?.[0];
 
-  // Stop-desk logic
-  const isStopDesk = form.deliveryType === "stop_desk";
-  const stopDeskCommunes = useMemo(
-    () => (form.wilayaCode ? getStopDeskCommunes(form.wilayaCode) : []),
+  // Office pickup uses the existing stop-desk price table/data.
+  const isOffice = form.deliveryType === "office";
+  const officeCommunes = useMemo(
+    () => (form.wilayaCode ? getOfficeCommunes(form.wilayaCode) : []),
     [form.wilayaCode]
   );
-  const wilayaNoStopDesk =
-    isStopDesk && form.wilayaCode && !wilayaHasStopDesk(form.wilayaCode);
-  const selectedStopDesk = stopDeskCommunes.find((c) => c.key === form.stopDeskKey);
+  const wilayaNoOffice = isOffice && form.wilayaCode && !wilayaHasOffice(form.wilayaCode);
+  const selectedOffice = officeCommunes.find((c) => c.key === form.stopDeskKey);
 
   // Price calculation
   const productTotal = product.price * quantity;
   let shipping = 0;
   if (form.wilayaCode) {
-    if (isStopDesk && form.stopDeskKey) {
+    if (isOffice && form.stopDeskKey) {
       shipping = getStopDeskPrice(stopDeskPrices, form.wilayaCode, form.stopDeskKey);
-    } else if (!isStopDesk) {
+    } else if (!isOffice) {
       shipping = getShippingPrice(shippingPrices, form.wilayaCode, form.deliveryType);
     }
   }
@@ -122,16 +124,16 @@ export default function ProductOrderClient({
       toast.error("يرجى ملء كل المعلومات المطلوبة");
       return;
     }
-    if (!isStopDesk && !form.communeId) {
+    if (!isOffice && !form.communeId) {
       toast.error("يرجى اختيار البلدية");
       return;
     }
-    if (isStopDesk && !form.stopDeskKey) {
-      toast.error("يرجى اختيار نقطة الاستلام");
+    if (isOffice && !form.stopDeskKey) {
+      toast.error("يرجى اختيار المكتب");
       return;
     }
-    if (wilayaNoStopDesk) {
-      toast.error("لا توجد نقاط استلام في ولايتك");
+    if (wilayaNoOffice) {
+      toast.error("لا توجد مكاتب في ولايتك");
       return;
     }
 
@@ -151,14 +153,14 @@ export default function ProductOrderClient({
             wilayaCode: form.wilayaCode,
             wilayaNameAr: selectedWilaya?.nameAr,
             wilayaNameFr: selectedWilaya?.nameFr,
-            communeId: isStopDesk ? null : form.communeId,
-            communeNameAr: isStopDesk
-              ? selectedStopDesk?.nameAr
+            communeId: isOffice ? null : form.communeId,
+            communeNameAr: isOffice
+              ? selectedOffice?.nameAr
               : selectedCommune?.nameAr,
-            communeNameFr: isStopDesk
-              ? selectedStopDesk?.nameFr
+            communeNameFr: isOffice
+              ? selectedOffice?.nameFr
               : selectedCommune?.nameFr,
-            stopDeskKey: isStopDesk ? form.stopDeskKey : null,
+            stopDeskKey: isOffice ? form.stopDeskKey : null,
             address: "",
             notes: "",
             deliveryType: form.deliveryType,
@@ -261,7 +263,6 @@ export default function ProductOrderClient({
                 >
                   <option value="home">{DELIVERY_LABELS_AR.home}</option>
                   <option value="office">{DELIVERY_LABELS_AR.office}</option>
-                  <option value="stop_desk">{DELIVERY_LABELS_AR.stop_desk}</option>
                 </select>
               </Field>
             </div>
@@ -289,8 +290,8 @@ export default function ProductOrderClient({
                 </select>
               </Field>
 
-              {/* Commune — only for home/office */}
-              {!isStopDesk && (
+              {/* Commune — only for home */}
+              {!isOffice && (
                 <Field label="البلدية / المدينة *" id="commune">
                   <select
                     id="commune"
@@ -310,32 +311,32 @@ export default function ProductOrderClient({
                 </Field>
               )}
 
-              {/* Stop-desk selection */}
-              {isStopDesk && (
+              {/* Office selection */}
+              {isOffice && (
                 <div className="sm:col-span-2">
                   {!form.wilayaCode && (
                     <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
                       <MapPin className="h-4 w-4 flex-shrink-0" />
-                      <span>اختر الولاية أولاً لعرض نقاط الاستلام المتاحة</span>
+                      <span>اختر الولاية أولاً لعرض المكاتب المتاحة</span>
                     </div>
                   )}
 
-                  {wilayaNoStopDesk && (
+                  {wilayaNoOffice && (
                     <div className="flex items-start gap-2 p-4 rounded-lg bg-orange-500/10 border border-orange-500/30 text-sm text-orange-600 dark:text-orange-400">
                       <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="font-semibold mb-1">لا تتوفر نقاط استلام في ولايتك</p>
+                        <p className="font-semibold mb-1">لا تتوفر مكاتب في ولايتك</p>
                         <p>
-                          عذراً، خدمة نقطة الاستلام غير متاحة في ولاية{" "}
+                          عذراً، خدمة المكتب غير متاحة في ولاية{" "}
                           <strong>{selectedWilaya?.nameAr}</strong> حالياً.
-                          يرجى اختيار التوصيل للمنزل أو المكتب، أو التواصل معنا للاستفسار.
+                          يرجى اختيار التوصيل للمنزل، أو التواصل معنا للاستفسار.
                         </p>
                       </div>
                     </div>
                   )}
 
-                  {form.wilayaCode && !wilayaNoStopDesk && (
-                    <Field label="نقطة الاستلام *" id="stopDesk">
+                  {form.wilayaCode && !wilayaNoOffice && (
+                    <Field label="المكتب *" id="stopDesk">
                       <select
                         id="stopDesk"
                         required
@@ -343,8 +344,8 @@ export default function ProductOrderClient({
                         onChange={(e) => set("stopDeskKey", e.target.value)}
                         className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-foreground"
                       >
-                        <option value="">اختر نقطة الاستلام</option>
-                        {stopDeskCommunes.map((c) => {
+                        <option value="">اختر المكتب</option>
+                        {officeCommunes.map((c) => {
                           const price = getStopDeskPrice(stopDeskPrices, form.wilayaCode, c.key);
                           return (
                             <option key={c.key} value={c.key}>
@@ -468,10 +469,10 @@ export default function ProductOrderClient({
             <SummaryRow
               label={`التوصيل ${form.wilayaCode ? `(${DELIVERY_LABELS_AR[form.deliveryType]})` : ""}`}
               value={
-                isStopDesk
+                isOffice
                   ? form.stopDeskKey
                     ? formatPrice(shipping, "DZD")
-                    : "اختر نقطة الاستلام"
+                    : "اختر المكتب"
                   : form.wilayaCode
                   ? formatPrice(shipping, "DZD")
                   : "اختر الولاية"

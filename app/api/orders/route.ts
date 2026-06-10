@@ -5,11 +5,14 @@ import { formatPrice, formatDate } from "@/lib/utils";
 import { getProductColorVariants } from "@/lib/product-options";
 import {
   DELIVERY_LABELS_AR,
+  getStopDeskPrice,
   getShippingPrice,
   mergeShippingPrices,
   type DeliveryType,
   type ShippingPrice,
+  type StopDeskPrice,
 } from "@/lib/shipping";
+import { getStopDeskCommunes as getOfficeCommunes } from "@/lib/stop-desks";
 
 const DEFAULT_ORDER_NOTIFICATION_EMAIL = "mouad.2000.bk@gmail.com";
 const ORDER_NOTIFICATION_EMAIL =
@@ -119,19 +122,47 @@ export async function POST(req: NextRequest) {
     const deliveryType: DeliveryType =
       shippingAddress?.deliveryType === "office" ? "office" : "home";
 
-    const { data: shippingRows } = await supabase
-      .from("shipping_prices")
-      .select("*");
+    const [{ data: shippingRows }, { data: officePriceRows }] = await Promise.all([
+      supabase.from("shipping_prices").select("*"),
+      supabase.from("stop_desk_prices").select("*"),
+    ]);
     const shippingPrices = mergeShippingPrices(
       shippingRows as Partial<ShippingPrice>[] | null
     );
+    const officePrices = (officePriceRows ?? []) as StopDeskPrice[];
+    const selectedOfficeKey =
+      typeof shippingAddress?.stopDeskKey === "string"
+        ? shippingAddress.stopDeskKey.trim()
+        : "";
+    const officeCommunes =
+      deliveryType === "office" && shippingAddress?.wilayaCode
+        ? getOfficeCommunes(shippingAddress.wilayaCode)
+        : [];
+    const selectedOffice = officeCommunes.find((office) => office.key === selectedOfficeKey);
+
+    if (deliveryType === "office" && !selectedOffice) {
+      throw new Error("Selected office is not available for this wilaya");
+    }
+
     const shippingPrice = shippingAddress?.wilayaCode
-      ? getShippingPrice(shippingPrices, shippingAddress.wilayaCode, deliveryType)
+      ? deliveryType === "office"
+        ? getStopDeskPrice(officePrices, shippingAddress.wilayaCode, selectedOfficeKey)
+        : getShippingPrice(shippingPrices, shippingAddress.wilayaCode, deliveryType)
       : 0;
     const total = subtotal + shippingPrice;
     const enrichedShippingAddress = {
       ...shippingAddress,
       customerPhone: customer.phone ?? null,
+      communeId: deliveryType === "office" ? null : shippingAddress?.communeId ?? null,
+      communeNameAr:
+        deliveryType === "office"
+          ? selectedOffice?.nameAr ?? null
+          : shippingAddress?.communeNameAr ?? null,
+      communeNameFr:
+        deliveryType === "office"
+          ? selectedOffice?.nameFr ?? null
+          : shippingAddress?.communeNameFr ?? null,
+      stopDeskKey: deliveryType === "office" ? selectedOfficeKey : null,
       deliveryType,
       deliveryLabelAr: DELIVERY_LABELS_AR[deliveryType],
       productSubtotal: subtotal,

@@ -1,6 +1,6 @@
 import { WILAYAS } from "@/lib/algeria";
 
-export type DeliveryType = "home" | "office" | "stop_desk";
+export type DeliveryType = "home" | "office";
 
 export type ShippingPrice = {
   wilaya_code: string;
@@ -10,7 +10,7 @@ export type ShippingPrice = {
   office_price: number;
 };
 
-// ─── Stop-desk price row (one per wilaya+commune) ────────────────────────────
+// ─── Office pickup price row (stored in the legacy stop_desk_prices table) ───
 export type StopDeskPrice = {
   wilaya_code: string;
   commune_key: string;
@@ -20,9 +20,8 @@ export type StopDeskPrice = {
 };
 
 export const DELIVERY_LABELS_AR: Record<DeliveryType, string> = {
-  home: "توصيل للمنزل",
-  office: "توصيل للمكتب",
-  stop_desk: "نقطة الاستلام",
+  home: "للمنزل",
+  office: "للمكتب",
 };
 
 export function getDefaultShippingPrices(): ShippingPrice[] {
@@ -54,13 +53,12 @@ export function getShippingPrice(
   wilayaCode: string,
   deliveryType: DeliveryType
 ) {
-  if (deliveryType === "stop_desk") return 0; // stop-desk price computed separately
   const row = rows.find((item) => item.wilaya_code === wilayaCode);
   if (!row) return 0;
   return deliveryType === "home" ? row.home_price : row.office_price;
 }
 
-/** Get price for a specific stop-desk commune */
+/** Get price for a specific office pickup location */
 export function getStopDeskPrice(
   rows: StopDeskPrice[],
   wilayaCode: string,

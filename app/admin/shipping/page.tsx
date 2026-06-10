@@ -18,7 +18,7 @@ export default async function AdminShippingPage() {
           أسعار الشحن
         </h1>
         <p style={{ color: "#666", marginTop: "4px", fontSize: "14px" }}>
-          حدد أسعار التوصيل لكل ولاية جزائرية ولكل نقطة استلام.
+          حدد أسعار التوصيل للمنزل ولكل مكتب شحن متاح.
         </p>
       </div>
       <AdminShippingClient

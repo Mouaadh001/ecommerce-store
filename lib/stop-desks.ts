@@ -1,7 +1,7 @@
 /**
- * Stop-desk (نقاط الاستلام) available communes per wilaya.
- * Key = wilaya code (string), Value = array of commune name slugs that have a stop-desk.
- * Wilayas with no stop-desk entries show an Arabic unavailability message.
+ * Shipping office pickup locations per wilaya.
+ * Key = wilaya code (string), Value = array of commune name slugs that have an office.
+ * Wilayas with no office entries show an Arabic unavailability message.
  */
 
 export interface StopDeskCommune {
@@ -19,7 +19,7 @@ export interface StopDeskWilaya {
   communes: StopDeskCommune[];
 }
 
-/** Raw stop-desk data per wilaya */
+/** Raw office pickup data per wilaya */
 export const STOP_DESK_DATA: StopDeskWilaya[] = [
   {
     wilayaCode: "1",
@@ -339,17 +339,17 @@ export const STOP_DESK_MAP = new Map<string, StopDeskWilaya>(
 );
 
 /**
- * Get stop-desk communes for a given wilaya code.
- * Returns empty array if the wilaya has no stop-desk.
+ * Get office pickup locations for a given wilaya code.
+ * Returns empty array if the wilaya has no office.
  */
 export function getStopDeskCommunes(wilayaCode: string): StopDeskCommune[] {
   return STOP_DESK_MAP.get(wilayaCode)?.communes ?? [];
 }
 
-/** Returns true if a wilaya has at least one stop-desk */
+/** Returns true if a wilaya has at least one office */
 export function wilayaHasStopDesk(wilayaCode: string): boolean {
   return getStopDeskCommunes(wilayaCode).length > 0;
 }
 
-/** All wilaya codes that have stop-desk coverage */
+/** All wilaya codes that have office coverage */
 export const WILAYAS_WITH_STOP_DESK = new Set(STOP_DESK_DATA.map((w) => w.wilayaCode));
