@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getResend } from "@/lib/resend";
 import { formatPrice, formatDate } from "@/lib/utils";
-import { ADMIN_EMAIL } from "@/lib/admin";
-const ORDER_NOTIFICATION_EMAIL = process.env.ORDER_NOTIFICATION_EMAIL || ADMIN_EMAIL;
 import { getProductColorVariants } from "@/lib/product-options";
 import {
   DELIVERY_LABELS_AR,
@@ -12,6 +10,10 @@ import {
   type DeliveryType,
   type ShippingPrice,
 } from "@/lib/shipping";
+
+const DEFAULT_ORDER_NOTIFICATION_EMAIL = "mouad.2000.bk@gmail.com";
+const ORDER_NOTIFICATION_EMAIL =
+  process.env.ORDER_NOTIFICATION_EMAIL || DEFAULT_ORDER_NOTIFICATION_EMAIL;
 
 type SelectedOptions = {
   color?: string | null;
