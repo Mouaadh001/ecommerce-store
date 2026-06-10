@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, Lock } from "lucide-react";
+import { CheckCircle2, Lock, MapPin, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Product } from "@/types";
 import { WILAYAS } from "@/lib/algeria";
@@ -10,9 +10,12 @@ import { getProductColorVariants } from "@/lib/product-options";
 import {
   DELIVERY_LABELS_AR,
   getShippingPrice,
+  getStopDeskPrice,
   type DeliveryType,
   type ShippingPrice,
+  type StopDeskPrice,
 } from "@/lib/shipping";
+import { getStopDeskCommunes, wilayaHasStopDesk } from "@/lib/stop-desks";
 import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +28,7 @@ type FormState = {
   wilayaCode: string;
   communeId: string;
   deliveryType: DeliveryType;
+  stopDeskKey: string;
 };
 
 const initialForm: FormState = {
@@ -33,11 +37,13 @@ const initialForm: FormState = {
   wilayaCode: "",
   communeId: "",
   deliveryType: "home",
+  stopDeskKey: "",
 };
 
 type Props = {
   product: Product;
   shippingPrices: ShippingPrice[];
+  stopDeskPrices: StopDeskPrice[];
   quantity: number;
   selectedColor: string;
   selectedSize: string;
@@ -46,6 +52,7 @@ type Props = {
 export function ProductInlineOrderForm({
   product,
   shippingPrices,
+  stopDeskPrices,
   quantity,
   selectedColor,
   selectedSize,
@@ -56,32 +63,61 @@ export function ProductInlineOrderForm({
 
   const colors = getProductColorVariants(product);
   const selectedColorVariant = colors.find((color) => color.label === selectedColor);
+
   const selectedWilaya = useMemo(
     () => WILAYAS.find((wilaya) => wilaya.code === form.wilayaCode),
     [form.wilayaCode]
   );
-  const selectedCommune = selectedWilaya?.communes.find(
-    (commune) => commune.id === form.communeId
+  const selectedCommune = selectedWilaya?.communes.find((c) => c.id === form.communeId);
+
+  // Stop-desk logic
+  const isStopDesk = form.deliveryType === "stop_desk";
+  const stopDeskCommunes = useMemo(
+    () => (form.wilayaCode ? getStopDeskCommunes(form.wilayaCode) : []),
+    [form.wilayaCode]
   );
+  const wilayaNoStopDesk =
+    isStopDesk && form.wilayaCode && !wilayaHasStopDesk(form.wilayaCode);
+  const selectedStopDesk = stopDeskCommunes.find((c) => c.key === form.stopDeskKey);
+
+  // Shipping price calculation
   const productTotal = product.price * quantity;
-  const shipping = form.wilayaCode
-    ? getShippingPrice(shippingPrices, form.wilayaCode, form.deliveryType)
-    : 0;
+  let shipping = 0;
+  if (form.wilayaCode) {
+    if (isStopDesk && form.stopDeskKey) {
+      shipping = getStopDeskPrice(stopDeskPrices, form.wilayaCode, form.stopDeskKey);
+    } else if (!isStopDesk) {
+      shipping = getShippingPrice(shippingPrices, form.wilayaCode, form.deliveryType);
+    }
+  }
   const total = productTotal + shipping;
 
   const set = (key: keyof FormState, value: string) => {
     setForm((current) => ({
       ...current,
       [key]: value,
-      ...(key === "wilayaCode" ? { communeId: "" } : {}),
+      ...(key === "wilayaCode" ? { communeId: "", stopDeskKey: "" } : {}),
+      ...(key === "deliveryType" ? { stopDeskKey: "" } : {}),
     }));
   };
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!form.fullName.trim() || !form.phone.trim() || !form.wilayaCode || !form.communeId) {
+    if (!form.fullName.trim() || !form.phone.trim() || !form.wilayaCode) {
       toast.error("يرجى ملء كل المعلومات المطلوبة");
+      return;
+    }
+    if (!isStopDesk && !form.communeId) {
+      toast.error("يرجى اختيار البلدية");
+      return;
+    }
+    if (isStopDesk && !form.stopDeskKey) {
+      toast.error("يرجى اختيار نقطة الاستلام");
+      return;
+    }
+    if (wilayaNoStopDesk) {
+      toast.error("لا توجد نقاط استلام في ولايتك");
       return;
     }
 
@@ -101,12 +137,19 @@ export function ProductInlineOrderForm({
             wilayaCode: form.wilayaCode,
             wilayaNameAr: selectedWilaya?.nameAr,
             wilayaNameFr: selectedWilaya?.nameFr,
-            communeId: form.communeId,
-            communeNameAr: selectedCommune?.nameAr,
-            communeNameFr: selectedCommune?.nameFr,
+            communeId: isStopDesk ? null : form.communeId,
+            communeNameAr: isStopDesk
+              ? selectedStopDesk?.nameAr
+              : selectedCommune?.nameAr,
+            communeNameFr: isStopDesk
+              ? selectedStopDesk?.nameFr
+              : selectedCommune?.nameFr,
+            stopDeskKey: isStopDesk ? form.stopDeskKey : null,
             address: "",
             notes: "",
             deliveryType: form.deliveryType,
+            deliveryLabelAr: DELIVERY_LABELS_AR[form.deliveryType],
+            shippingPrice: shipping,
           },
           items: [
             {
@@ -156,6 +199,7 @@ export function ProductInlineOrderForm({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Full name */}
         <Field label="الاسم الكامل *" id="inline-fullName">
           <Input
             id="inline-fullName"
@@ -165,6 +209,8 @@ export function ProductInlineOrderForm({
             placeholder="مثال: محمد أمين"
           />
         </Field>
+
+        {/* Phone */}
         <Field label="رقم الهاتف *" id="inline-phone">
           <Input
             id="inline-phone"
@@ -175,6 +221,8 @@ export function ProductInlineOrderForm({
             placeholder="0550 00 00 00"
           />
         </Field>
+
+        {/* Delivery type */}
         <Field label="نوع التوصيل *" id="inline-deliveryType">
           <select
             id="inline-deliveryType"
@@ -185,8 +233,11 @@ export function ProductInlineOrderForm({
           >
             <option value="home">{DELIVERY_LABELS_AR.home}</option>
             <option value="office">{DELIVERY_LABELS_AR.office}</option>
+            <option value="stop_desk">{DELIVERY_LABELS_AR.stop_desk}</option>
           </select>
         </Field>
+
+        {/* Wilaya */}
         <Field label="الولاية *" id="inline-wilaya">
           <select
             id="inline-wilaya"
@@ -203,25 +254,76 @@ export function ProductInlineOrderForm({
             ))}
           </select>
         </Field>
-        <div className="sm:col-span-2">
-          <Field label="البلدية / المدينة *" id="inline-commune">
-            <select
-              id="inline-commune"
-              required
-              value={form.communeId}
-              onChange={(e) => set("communeId", e.target.value)}
-              disabled={!selectedWilaya}
-              className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-foreground disabled:opacity-50"
-            >
-              <option value="">اختر البلدية</option>
-              {selectedWilaya?.communes.map((commune) => (
-                <option key={commune.id} value={commune.id}>
-                  {commune.nameAr || commune.nameFr}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </div>
+
+        {/* Commune (home / office only) */}
+        {!isStopDesk && (
+          <div className="sm:col-span-2">
+            <Field label="البلدية / المدينة *" id="inline-commune">
+              <select
+                id="inline-commune"
+                required
+                value={form.communeId}
+                onChange={(e) => set("communeId", e.target.value)}
+                disabled={!selectedWilaya}
+                className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-foreground disabled:opacity-50"
+              >
+                <option value="">اختر البلدية</option>
+                {selectedWilaya?.communes.map((commune) => (
+                  <option key={commune.id} value={commune.id}>
+                    {commune.nameAr || commune.nameFr}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+        )}
+
+        {/* Stop-desk selection */}
+        {isStopDesk && (
+          <div className="sm:col-span-2">
+            {/* No wilaya chosen yet */}
+            {!form.wilayaCode && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4 flex-shrink-0" />
+                <span>اختر الولاية أولاً لعرض نقاط الاستلام المتاحة</span>
+              </div>
+            )}
+
+            {/* Wilaya has no stop-desk */}
+            {wilayaNoStopDesk && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/30 text-sm text-orange-600 dark:text-orange-400">
+                <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                <span>
+                  عذراً، لا تتوفر نقاط استلام في ولايتك حالياً.
+                  يرجى اختيار التوصيل للمنزل أو المكتب، أو اختيار ولاية أخرى.
+                </span>
+              </div>
+            )}
+
+            {/* Wilaya has stop-desks */}
+            {form.wilayaCode && !wilayaNoStopDesk && (
+              <Field label="نقطة الاستلام *" id="inline-stopDesk">
+                <select
+                  id="inline-stopDesk"
+                  required
+                  value={form.stopDeskKey}
+                  onChange={(e) => set("stopDeskKey", e.target.value)}
+                  className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-foreground"
+                >
+                  <option value="">اختر نقطة الاستلام</option>
+                  {stopDeskCommunes.map((c) => {
+                    const price = getStopDeskPrice(stopDeskPrices, form.wilayaCode, c.key);
+                    return (
+                      <option key={c.key} value={c.key}>
+                        {c.nameAr} — {formatPrice(price, "DZD")}
+                      </option>
+                    );
+                  })}
+                </select>
+              </Field>
+            )}
+          </div>
+        )}
       </div>
 
       <Separator />
@@ -232,7 +334,15 @@ export function ProductInlineOrderForm({
         <SummaryRow label="سعر المنتجات" value={formatPrice(productTotal, "DZD")} />
         <SummaryRow
           label={`التوصيل ${form.wilayaCode ? `(${DELIVERY_LABELS_AR[form.deliveryType]})` : ""}`}
-          value={form.wilayaCode ? formatPrice(shipping, "DZD") : "اختر الولاية"}
+          value={
+            isStopDesk
+              ? form.stopDeskKey
+                ? formatPrice(shipping, "DZD")
+                : "اختر نقطة الاستلام"
+              : form.wilayaCode
+              ? formatPrice(shipping, "DZD")
+              : "اختر الولاية"
+          }
         />
       </div>
 
@@ -240,7 +350,13 @@ export function ProductInlineOrderForm({
 
       <SummaryRow label="المجموع" value={formatPrice(total, "DZD")} strong />
 
-      <Button type="submit" size="lg" className="w-full" loading={loading} disabled={product.stock === 0}>
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full"
+        loading={loading}
+        disabled={product.stock === 0}
+      >
         <Lock className="h-4 w-4" />
         {loading ? "جاري إرسال الطلب..." : "اطلب الآن"}
       </Button>

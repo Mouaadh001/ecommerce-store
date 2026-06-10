@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { Product } from "@/types";
-import { mergeShippingPrices, type ShippingPrice } from "@/lib/shipping";
+import { mergeShippingPrices, type ShippingPrice, type StopDeskPrice } from "@/lib/shipping";
 import ProductOrderClient from "./ProductOrderClient";
 
 interface Props {
@@ -25,9 +25,10 @@ export default async function ProductOrderPage({ params }: Props) {
   const { slug } = await params;
   const supabase = await createClient();
 
-  const [{ data: product }, { data: shippingRows }] = await Promise.all([
+  const [{ data: product }, { data: shippingRows }, { data: stopDeskRows }] = await Promise.all([
     supabase.from("products").select("*, category:categories(*)").eq("slug", slug).single(),
     supabase.from("shipping_prices").select("*"),
+    supabase.from("stop_desk_prices").select("*"),
   ]);
 
   if (!product) notFound();
@@ -36,6 +37,7 @@ export default async function ProductOrderPage({ params }: Props) {
     <ProductOrderClient
       product={product as Product}
       shippingPrices={mergeShippingPrices(shippingRows as Partial<ShippingPrice>[] | null)}
+      stopDeskPrices={(stopDeskRows ?? []) as StopDeskPrice[]}
     />
   );
 }

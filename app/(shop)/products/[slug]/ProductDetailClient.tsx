@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Minus, Plus } from "lucide-react";
 import { Product } from "@/types";
 import { getProductColorVariants, getReadableTextColor } from "@/lib/product-options";
-import { type ShippingPrice } from "@/lib/shipping";
+import { type ShippingPrice, type StopDeskPrice } from "@/lib/shipping";
 import { formatPrice } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -18,9 +18,10 @@ interface Props {
   product: Product;
   relatedProducts: Product[];
   shippingPrices: ShippingPrice[];
+  stopDeskPrices: StopDeskPrice[];
 }
 
-export function ProductDetailClient({ product, relatedProducts, shippingPrices }: Props) {
+export function ProductDetailClient({ product, relatedProducts, shippingPrices, stopDeskPrices }: Props) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const colors = getProductColorVariants(product);
@@ -213,6 +214,7 @@ export function ProductDetailClient({ product, relatedProducts, shippingPrices }
           <ProductInlineOrderForm
             product={product}
             shippingPrices={shippingPrices}
+            stopDeskPrices={stopDeskPrices}
             quantity={quantity}
             selectedColor={selectedColor}
             selectedSize={selectedSize}
