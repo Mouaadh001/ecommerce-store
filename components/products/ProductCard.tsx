@@ -67,7 +67,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
         </div>
 
         {/* Info */}
-        <div className="p-4">
+        <div className="p-3 sm:p-4">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               {product.category && (
@@ -79,7 +79,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-2">
             <span className="text-sm font-semibold">{formatPrice(product.price, "DZD")}</span>
             {product.compare_at_price && (
               <span className="text-xs text-muted-foreground line-through">

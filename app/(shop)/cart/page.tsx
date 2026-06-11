@@ -30,15 +30,15 @@ export default function CartPage() {
   const total = getTotalPrice() + shipping;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <h1 className="text-3xl font-bold tracking-tight mb-8">Your Cart</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-6 sm:mb-8">Your Cart</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         {/* Items */}
         <div className="lg:col-span-2 space-y-4">
           {items.map(({ product, quantity }) => (
-            <div key={product.id} className="flex gap-4 p-4 rounded-2xl border border-border bg-card hover:shadow-sm transition-shadow">
-              <div className="relative w-24 h-24 rounded-xl overflow-hidden bg-muted flex-shrink-0">
+            <div key={product.id} className="flex gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl border border-border bg-card hover:shadow-sm transition-shadow">
+              <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-muted flex-shrink-0">
                 {product.images?.[0] ? (
                   <Image src={product.images[0]} alt={product.name} fill className="object-cover" sizes="96px" />
                 ) : (
@@ -62,7 +62,7 @@ export default function CartPage() {
                   <p className="text-xs text-muted-foreground mt-0.5">{product.category.name}</p>
                 )}
 
-                <div className="flex items-center justify-between mt-3">
+                <div className="flex flex-col items-start gap-3 mt-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center border border-border rounded-lg overflow-hidden">
                     <button onClick={() => updateQuantity(product.id, quantity - 1)} className="w-8 h-8 flex items-center justify-center hover:bg-muted transition-colors" aria-label="Decrease">
                       <Minus className="w-3 h-3" />
@@ -72,7 +72,7 @@ export default function CartPage() {
                       <Plus className="w-3 h-3" />
                     </button>
                   </div>
-                  <span className="font-semibold">{formatPrice(product.price * quantity)}</span>
+                  <span className="font-semibold break-words">{formatPrice(product.price * quantity)}</span>
                 </div>
               </div>
             </div>

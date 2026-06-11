@@ -234,6 +234,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
         .admin-main {
           flex: 1;
+          min-width: 0;
+          width: 100%;
           padding: 32px;
           overflow-y: auto;
           max-width: 1440px;
@@ -285,6 +287,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             flex-direction: row;
             overflow-x: auto;
             padding-bottom: 4px;
+          }
+          .admin-logo {
+            padding-bottom: 16px;
+            margin-bottom: 16px;
           }
           .admin-nav-item {
             flex-shrink: 0;

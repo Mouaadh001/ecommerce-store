@@ -402,8 +402,8 @@ function SummaryRow({
 }) {
   return (
     <div className={`flex justify-between gap-4 ${strong ? "font-bold text-lg" : "text-muted-foreground"}`}>
-      <span>{label}</span>
-      <span className="text-left whitespace-nowrap text-foreground">{value}</span>
+      <span className="min-w-0">{label}</span>
+      <span className="shrink-0 text-left whitespace-nowrap text-foreground">{value}</span>
     </div>
   );
 }

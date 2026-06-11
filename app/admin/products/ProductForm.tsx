@@ -237,17 +237,17 @@ export default function ProductForm({ categories, product }: Props) {
   const manualImageUrls = parseList(form.images);
 
   return (
-    <form onSubmit={handleSubmit} style={{ maxWidth: "760px" }}>
+    <form onSubmit={handleSubmit} className="admin-product-form" style={{ maxWidth: "760px" }}>
       {error && (
         <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171", padding: "12px 16px", borderRadius: "8px", marginBottom: "24px", fontSize: "14px" }}>
           {error}
         </div>
       )}
 
-      <div style={{ background: "#111118", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "12px", padding: "28px", display: "flex", flexDirection: "column", gap: "20px" }}>
+      <div className="admin-product-panel" style={{ background: "#111118", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "12px", padding: "28px", display: "flex", flexDirection: "column", gap: "20px" }}>
 
         {/* Name + Slug */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+        <div className="admin-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
           <div>
             <label style={labelStyle}>Product Name *</label>
             <input required style={inputStyle} value={form.name} onChange={(e) => { set("name", e.target.value); if (!isEdit) set("slug", autoSlug(e.target.value)); }} placeholder="e.g. Wireless Headphones" />
@@ -265,7 +265,7 @@ export default function ProductForm({ categories, product }: Props) {
         </div>
 
         {/* Price + Compare price */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+        <div className="admin-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
           <div>
             <label style={labelStyle}>Price ($) *</label>
             <input required type="number" min="0" step="0.01" style={inputStyle} value={form.price} onChange={(e) => set("price", e.target.value)} placeholder="0.00" />
@@ -277,7 +277,7 @@ export default function ProductForm({ categories, product }: Props) {
         </div>
 
         {/* Category + Stock */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+        <div className="admin-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
           <div>
             <label style={labelStyle}>Category</label>
             <select style={{ ...inputStyle, cursor: "pointer" }} value={form.category_id} onChange={(e) => set("category_id", e.target.value)}>
@@ -386,6 +386,7 @@ export default function ProductForm({ categories, product }: Props) {
             {colorVariants.map((variant, index) => (
               <div
                 key={index}
+                className="admin-color-variant-row"
                 style={{
                   display: "grid",
                   gridTemplateColumns: "44px 1fr 1.2fr auto",
@@ -411,6 +412,7 @@ export default function ProductForm({ categories, product }: Props) {
                   placeholder="Black"
                 />
                 <select
+                  className="admin-color-image-select"
                   style={{ ...inputStyle, cursor: "pointer" }}
                   value={
                     variant.imageFileIndex !== null
@@ -493,7 +495,7 @@ export default function ProductForm({ categories, product }: Props) {
       </div>
 
       {/* Actions */}
-      <div style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
+      <div className="admin-form-actions" style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
         <button
           type="submit"
           disabled={loading}
@@ -509,6 +511,37 @@ export default function ProductForm({ categories, product }: Props) {
           Cancel
         </button>
       </div>
+      <style jsx global>{`
+        .admin-product-form {
+          width: 100%;
+        }
+
+        @media (max-width: 640px) {
+          .admin-product-panel {
+            padding: 18px !important;
+          }
+
+          .admin-product-form .admin-form-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .admin-product-form .admin-color-variant-row {
+            grid-template-columns: 44px minmax(0, 1fr) auto !important;
+          }
+
+          .admin-product-form .admin-color-image-select {
+            grid-column: 1 / -1;
+          }
+
+          .admin-product-form .admin-form-actions {
+            flex-direction: column;
+          }
+
+          .admin-product-form .admin-form-actions button {
+            width: 100%;
+          }
+        }
+      `}</style>
     </form>
   );
 }

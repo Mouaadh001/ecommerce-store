@@ -102,7 +102,7 @@ export function ProductDetailClient({ product, relatedProducts, shippingPrices, 
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{product.name}</h1>
           </div>
 
-          <div className="flex items-baseline gap-3">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <span className="text-3xl sm:text-4xl font-bold">{formatPrice(product.price, "DZD")}</span>
             {product.compare_at_price && (
               <span className="text-xl text-muted-foreground line-through">

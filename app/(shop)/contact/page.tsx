@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Mail, Phone, MapPin, Clock, Send } from "lucide-react";
-import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,7 +34,7 @@ export default function ContactPage() {
     resolver: zodResolver(schema),
   });
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async () => {
     setLoading(true);
     await new Promise((r) => setTimeout(r, 1200));
     setLoading(false);
@@ -45,11 +44,11 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <div className="max-w-2xl mb-14">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16">
+      <div className="max-w-2xl min-w-0 mb-10 sm:mb-14">
         <p className="text-sm text-muted-foreground uppercase tracking-widest mb-3">Get in touch</p>
-        <h1 className="text-4xl font-bold tracking-tight mb-4">We&apos;d love to hear from you</h1>
-        <p className="text-muted-foreground text-lg">
+        <h1 className="text-2xl sm:text-4xl font-bold tracking-tight mb-4">We&apos;d love to hear from you</h1>
+        <p className="max-w-full text-base sm:text-lg text-muted-foreground">
           Have a question about an order, product, or partnership? Send us a message and we&apos;ll get back to you quickly.
         </p>
       </div>
@@ -62,18 +61,18 @@ export default function ContactPage() {
               <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
                 <Icon className="w-5 h-5 text-muted-foreground" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">{title}</p>
                 {href ? (
-                  <a href={href} className="text-sm font-medium hover:underline underline-offset-4">{value}</a>
+                  <a href={href} className="text-sm font-medium break-words hover:underline underline-offset-4">{value}</a>
                 ) : (
-                  <p className="text-sm font-medium">{value}</p>
+                  <p className="text-sm font-medium break-words">{value}</p>
                 )}
               </div>
             </div>
           ))}
 
-          <div className="mt-8 rounded-2xl bg-foreground text-background p-6">
+          <div className="mt-8 rounded-2xl bg-foreground text-background p-5 sm:p-6">
             <h3 className="font-semibold mb-2">Quick Response Guarantee</h3>
             <p className="text-background/70 text-sm">We respond to all inquiries within 24 hours on business days.</p>
           </div>

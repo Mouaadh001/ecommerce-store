@@ -9,7 +9,6 @@ import { formatPrice, formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
 
 interface Props {
   orders: Order[];
@@ -34,7 +33,7 @@ function OrderCard({ order }: { order: Order }) {
       <div className="p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Left: ID + Date */}
-          <div className="flex items-start sm:items-center gap-3">
+          <div className="flex min-w-0 items-start sm:items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
               <Package className="w-5 h-5 text-muted-foreground" />
             </div>
@@ -49,12 +48,12 @@ function OrderCard({ order }: { order: Order }) {
           </div>
 
           {/* Right: Status + Total */}
-          <div className="flex items-center gap-3 ml-13 sm:ml-0">
+          <div className="flex flex-wrap items-center gap-3 sm:ml-0">
             <Badge variant={status.variant} className="gap-1.5 text-xs px-2.5 py-1">
               <StatusIcon className="w-3 h-3" />
               {status.label}
             </Badge>
-            <span className="font-bold text-base">{formatPrice(order.total)}</span>
+            <span className="font-bold text-base break-words">{formatPrice(order.total)}</span>
           </div>
         </div>
 
@@ -147,7 +146,7 @@ function OrderCard({ order }: { order: Order }) {
                     Qty: {item.quantity} × {formatPrice(item.price_at_purchase)}
                   </p>
                 </div>
-                <span className="text-sm font-semibold flex-shrink-0">
+                <span className="text-sm font-semibold flex-shrink-0 break-words">
                   {formatPrice(item.price_at_purchase * item.quantity)}
                 </span>
               </li>
@@ -202,9 +201,9 @@ function OrderCard({ order }: { order: Order }) {
 export function OrdersClient({ orders }: Props) {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col items-start justify-between gap-4 mb-8 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">My Orders</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">My Orders</h1>
           <p className="text-muted-foreground mt-1">
             {orders.length === 0 ? "No orders yet" : `${orders.length} ${orders.length === 1 ? "order" : "orders"}`}
           </p>

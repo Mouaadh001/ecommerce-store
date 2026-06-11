@@ -27,10 +27,10 @@ export default function WishlistPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
       <div className="flex items-end justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Wishlist</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Wishlist</h1>
           <p className="text-muted-foreground mt-1">{items.length} saved {items.length === 1 ? "item" : "items"}</p>
         </div>
       </div>

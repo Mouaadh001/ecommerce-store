@@ -91,11 +91,11 @@ export default function ProductsPageClient() {
             className="pl-9"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex w-full gap-2 sm:w-auto">
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            className="h-10 rounded-lg border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-foreground"
+            className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-foreground sm:flex-none"
             aria-label="Sort products"
           >
             {sortOptions.map((o) => (
@@ -135,7 +135,7 @@ export default function ProductsPageClient() {
         </div>
       )}
 
-      <div className="flex gap-8">
+      <div className="flex flex-col gap-5 sm:flex-row sm:gap-8">
         {/* Desktop sidebar */}
         {filtersOpen && (
           <aside className="hidden sm:block w-52 flex-shrink-0">
@@ -183,7 +183,7 @@ export default function ProductsPageClient() {
 
         {/* Mobile category pills */}
         {filtersOpen && (
-          <div className="sm:hidden w-full mb-4">
+          <div className="sm:hidden w-full">
             <div className="flex gap-2 overflow-x-auto pb-2">
               {["", ...categories.map((c) => c.slug)].map((slug) => {
                 const label = slug === "" ? "All" : categories.find((c) => c.slug === slug)?.name ?? slug;

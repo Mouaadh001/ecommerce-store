@@ -108,7 +108,7 @@ export default function AdminShippingClient({ prices, stopDeskPrices }: Props) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       {/* Tabs */}
-      <div style={{ display: "flex", gap: "8px", borderBottom: "1px solid rgba(255,255,255,0.07)", paddingBottom: "0" }}>
+      <div style={{ display: "flex", gap: "8px", borderBottom: "1px solid rgba(255,255,255,0.07)", paddingBottom: "0", overflowX: "auto" }}>
         {(["home_office", "stop_desk"] as const).map((tab) => (
           <button
             key={tab}
@@ -218,7 +218,7 @@ export default function AdminShippingClient({ prices, stopDeskPrices }: Props) {
                   type="button"
                   onClick={() => setExpandedWilaya(isOpen ? null : wilaya.wilayaCode)}
                   style={{
-                    width: "100%", display: "flex", alignItems: "center", gap: "14px",
+                    width: "100%", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap",
                     padding: "14px 18px", background: "none", border: "none",
                     cursor: "pointer", textAlign: "left",
                   }}
@@ -251,6 +251,7 @@ export default function AdminShippingClient({ prices, stopDeskPrices }: Props) {
                       return (
                         <div
                           key={commune.key}
+                          className="admin-office-row"
                           style={{
                             display: "grid", gridTemplateColumns: "1fr 1fr 160px",
                             alignItems: "center", gap: "16px",
@@ -278,6 +279,15 @@ export default function AdminShippingClient({ prices, stopDeskPrices }: Props) {
           })}
         </div>
       )}
+      <style jsx global>{`
+        @media (max-width: 640px) {
+          .admin-office-row {
+            grid-template-columns: 1fr !important;
+            gap: 8px !important;
+            padding: 12px 14px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

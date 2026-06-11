@@ -83,21 +83,22 @@ export default function AdminOrdersClient({ orders }: { orders: Order[] }) {
           <div key={order.id} style={{ background: "rgba(255,255,255,0.045)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,0.12)" }}>
             {/* Header row */}
             <div
+              className="admin-order-header"
               onClick={() => setExpanded(isOpen ? null : order.id)}
               style={{ display: "grid", gridTemplateColumns: "minmax(180px,2fr) minmax(150px,1.6fr) minmax(120px,1fr) minmax(130px,1.2fr) auto auto", alignItems: "center", gap: "16px", padding: "17px 20px", cursor: "pointer" }}
             >
-              <div>
+              <div className="admin-order-customer">
                 <p style={{ margin: 0, color: "#f4f4f5", fontWeight: 650, fontSize: "14px" }}>{order.customer_name ?? "Guest"}</p>
-                <p style={{ margin: "4px 0 0", color: "#71717a", fontSize: "12px" }}>{order.customer_email ?? "—"}</p>
+                <p style={{ margin: "4px 0 0", color: "#71717a", fontSize: "12px", overflowWrap: "anywhere" }}>{order.customer_email ?? "—"}</p>
               </div>
-              <div>
+              <div className="admin-order-meta">
                 <p style={{ margin: 0, color: "#a1a1aa", fontSize: "12px", fontFamily: "monospace" }}>#{order.id.slice(0, 8).toUpperCase()}</p>
                 <p style={{ margin: "4px 0 0", color: "#71717a", fontSize: "12px" }}>{new Date(order.created_at).toLocaleString()}</p>
               </div>
-              <div style={{ color: "#34d399", fontWeight: 750, fontSize: "15px" }}>
+              <div className="admin-order-total" style={{ color: "#34d399", fontWeight: 750, fontSize: "15px" }}>
                 {formatPrice(Number(order.total), "DZD")}
               </div>
-              <div onClick={(e) => e.stopPropagation()}>
+              <div className="admin-order-status" onClick={(e) => e.stopPropagation()}>
                 <select
                   value={order.status}
                   disabled={updating === order.id}
@@ -145,7 +146,7 @@ export default function AdminOrdersClient({ orders }: { orders: Order[] }) {
 
             {/* Expanded details */}
             {isOpen && (
-              <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", padding: "20px", display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: "24px", background: "rgba(0,0,0,0.18)" }}>
+              <div className="admin-order-details" style={{ borderTop: "1px solid rgba(255,255,255,0.08)", padding: "20px", display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: "24px", background: "rgba(0,0,0,0.18)" }}>
                 {/* Items */}
                 <div>
                   <p style={{ margin: "0 0 12px", fontSize: "12px", color: "#71717a", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>Items</p>
@@ -155,7 +156,7 @@ export default function AdminOrdersClient({ orders }: { orders: Order[] }) {
 
                       return (
                         <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: "12px", fontSize: "13px", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                          <span style={{ color: "#e4e4e7" }}>
+                          <span style={{ color: "#e4e4e7", minWidth: 0, overflowWrap: "anywhere" }}>
                             {item.product?.name ?? "Unknown"} × {item.quantity}
                             {options && (
                               <span style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px", color: "#777", fontSize: "12px" }}>
@@ -204,6 +205,45 @@ export default function AdminOrdersClient({ orders }: { orders: Order[] }) {
           </div>
         );
       })}
+      <style jsx global>{`
+        @media (max-width: 720px) {
+          .admin-order-header {
+            grid-template-columns: minmax(0, 1fr) auto !important;
+            gap: 12px !important;
+            padding: 14px !important;
+          }
+
+          .admin-order-customer,
+          .admin-order-meta {
+            grid-column: 1 / -1;
+            min-width: 0;
+          }
+
+          .admin-order-total {
+            grid-column: 1;
+          }
+
+          .admin-order-status {
+            grid-column: 1;
+          }
+
+          .admin-order-header > button {
+            grid-column: 2;
+            grid-row: 3;
+          }
+
+          .admin-order-header > div:last-child {
+            grid-column: 2;
+            grid-row: 4;
+            justify-self: center;
+          }
+
+          .admin-order-details {
+            grid-template-columns: 1fr !important;
+            padding: 14px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

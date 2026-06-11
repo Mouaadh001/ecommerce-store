@@ -49,11 +49,11 @@ export function ProfileClient({ user, profile }: Props) {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">My Account</h1>
-          <p className="text-muted-foreground mt-1">{user.email}</p>
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+      <div className="flex flex-col items-start justify-between gap-4 mb-8 sm:flex-row">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">My Account</h1>
+          <p className="text-muted-foreground mt-1 break-all">{user.email}</p>
         </div>
         <Button variant="outline" onClick={handleSignOut} className="gap-2 text-red-500 hover:text-red-600 border-red-200 dark:border-red-900">
           <LogOut className="w-4 h-4" /> Sign Out
@@ -61,7 +61,7 @@ export function ProfileClient({ user, profile }: Props) {
       </div>
 
       {/* Quick links */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
           { href: "/orders", icon: ShoppingBag, label: "My Orders" },
           { href: "/wishlist", icon: Heart, label: "Wishlist" },
@@ -70,7 +70,7 @@ export function ProfileClient({ user, profile }: Props) {
           <Link
             key={href}
             href={href}
-            className="flex items-center gap-3 p-4 rounded-2xl border border-border bg-card hover:shadow-sm transition-all hover:-translate-y-0.5"
+            className="flex min-w-0 items-center gap-3 p-4 rounded-2xl border border-border bg-card hover:shadow-sm transition-all hover:-translate-y-0.5"
           >
             <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
               <Icon className="w-4 h-4" />
